@@ -5,7 +5,7 @@ init_config() {
 
     if [ -n "$RCON_PASS" ]; then
       jq_cmd="${jq_cmd} | .rcon_pass = \"$RCON_PASS\""
-      echo "Factorio rcon password is '$RCON_PASS'"
+      echo "Using Factorio RCON password from the environment"
     fi
 
     jq_cmd="${jq_cmd} | .sq_lite_database_file = \"/opt/fsm-data/sqlite.db\""

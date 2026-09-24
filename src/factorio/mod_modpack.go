@@ -53,6 +53,12 @@ func (modPackMap *ModPackMap) reload() error {
 	config := bootstrap.GetConfig()
 
 	err = filepath.Walk(config.FactorioModPackDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info == nil {
+			return nil
+		}
 		if path == config.FactorioModPackDir || !info.IsDir() {
 			return nil
 		}
@@ -93,6 +99,9 @@ func (modPackMap *ModPackMap) ListInstalledModPacks() []ModPackResult {
 
 func (modPackMap *ModPackMap) CreateModPack(modPackName string) error {
 	var err error
+	if err = ValidateFileName(modPackName); err != nil {
+		return err
+	}
 	config := bootstrap.GetConfig()
 	modPackFolder := filepath.Join(config.FactorioModPackDir, modPackName)
 
@@ -162,6 +171,9 @@ func (modPackMap *ModPackMap) CreateModPack(modPackName string) error {
 
 func (modPackMap *ModPackMap) CreateEmptyModPack(packName string) error {
 	var err error
+	if err = ValidateFileName(packName); err != nil {
+		return err
+	}
 	config := bootstrap.GetConfig()
 	modPackFolder := filepath.Join(config.FactorioModPackDir, packName)
 
@@ -197,6 +209,9 @@ func (modPackMap *ModPackMap) CheckModPackExists(modPackName string) bool {
 
 func (modPackMap *ModPackMap) DeleteModPack(modPackName string) error {
 	var err error
+	if err = ValidateFileName(modPackName); err != nil {
+		return err
+	}
 	config := bootstrap.GetConfig()
 	modPackDir := filepath.Join(config.FactorioModPackDir, modPackName)
 
@@ -241,6 +256,12 @@ func (modPack *ModPack) LoadModPack() error {
 
 	//copy the modpack folder to the normal mods directory
 	err = filepath.Walk(modPack.Mods.ModInfoList.Destination, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info == nil {
+			return nil
+		}
 		if info.IsDir() {
 			return nil
 		}

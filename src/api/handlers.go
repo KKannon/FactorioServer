@@ -4,15 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
-	"time"
 
 	"github.com/OpenFactorioServerManager/factorio-server-manager/bootstrap"
 	"github.com/OpenFactorioServerManager/factorio-server-manager/factorio"
@@ -103,13 +102,20 @@ func ListSaves(w http.ResponseWriter, r *http.Request) {
 }
 
 func DLSave(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/octet-stream")
 	config := bootstrap.GetConfig()
-	vars := mux.Vars(r)
-	save := vars["save"]
-	saveName := filepath.Join(config.FactorioSavesDir, save)
+	save, err := factorio.FindSave(mux.Vars(r)["save"])
+	if err != nil {
+		http.Error(w, "Save not found", http.StatusNotFound)
+		return
+	}
+	saveName, err := factorio.ResolveDataPath(config.FactorioSavesDir, save.Name)
+	if err != nil {
+		http.Error(w, "Invalid save name", http.StatusBadRequest)
+		return
+	}
 
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", save))
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", save.Name))
 	log.Printf("%s downloading: %s", r.Host, saveName)
 
 	http.ServeFile(w, r, saveName)
@@ -124,43 +130,25 @@ func UploadSave(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Uploading save file")
 
-	r.ParseMultipartForm(32 << 20)
-	config := bootstrap.GetConfig()
-
-	for _, saveFile := range r.MultipartForm.File["savefile"] {
-		ext := filepath.Ext(saveFile.Filename)
-		if ext != ".zip" {
-			// Only zip-files allowed
-			resp = fmt.Sprintf("Fileformat {%s} is not allowed", ext)
-			w.WriteHeader(http.StatusUnsupportedMediaType)
-			return
+	if err := parseMultipartWithinLimit(w, r); err != nil {
+		resp = err.Error()
+		w.WriteHeader(http.StatusRequestEntityTooLarge)
+		return
+	}
+	files := uploadedFiles(r, "savefile")
+	if len(files) != 1 {
+		resp = "Exactly one save file is required"
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if err := storeUploadedSave(files[0]); err != nil {
+		resp = fmt.Sprintf("Could not store save: %s", err)
+		if strings.Contains(err.Error(), "already exists") {
+			w.WriteHeader(http.StatusConflict)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
 		}
-
-		file, err := saveFile.Open()
-		if err != nil {
-			resp = fmt.Sprintf("Error opening uploaded saveFile: %s", err)
-			log.Println(resp)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		defer file.Close()
-
-		out, err := os.Create(filepath.Join(config.FactorioSavesDir, saveFile.Filename))
-		if err != nil {
-			resp = fmt.Sprintf("Error creating new savefile to copy uploaded on to: %s", err)
-			log.Println(resp)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		defer out.Close()
-
-		_, err = io.Copy(out, file)
-		if err != nil {
-			resp = fmt.Sprintf("Error coping uploaded file to created file on disk: %s", err)
-			log.Println(resp)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		return
 	}
 
 	resp = "Uploading files successful"
@@ -211,16 +199,24 @@ func CreateSaveHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	vars := mux.Vars(r)
-	saveName := vars["save"]
-
-	if saveName == "" {
-		resp = fmt.Sprintf("Error creating save, no save name provided: %s", err)
-		log.Println(resp)
+	saveName, err := factorio.NormalizeSaveName(vars["save"])
+	if err != nil {
+		resp = fmt.Sprintf("Invalid save name: %s", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	config := bootstrap.GetConfig()
-	saveFile := filepath.Join(config.FactorioSavesDir, saveName)
+	saveFile, err := factorio.ResolveDataPath(config.FactorioSavesDir, saveName)
+	if err != nil {
+		resp = fmt.Sprintf("Invalid save path: %s", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if _, err = os.Stat(saveFile); err == nil {
+		resp = fmt.Sprintf("Save %s already exists", saveName)
+		w.WriteHeader(http.StatusConflict)
+		return
+	}
 	cmdOut, err := factorio.CreateSave(saveFile)
 	if err != nil {
 		resp = fmt.Sprintf("Error creating save {%s}: %s", saveName, err)
@@ -279,7 +275,6 @@ func LoadConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func StartServer(w http.ResponseWriter, r *http.Request) {
-	var err error
 	var resp interface{}
 	var server = factorio.GetFactorioServer()
 	defer func() {
@@ -294,16 +289,18 @@ func StartServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Starting Factorio server.")
-
-	body, resp, err := ReadRequestBody(w, r)
+	body, readResp, err := ReadRequestBody(w, r)
 	if err != nil {
+		resp = readResp
 		return
 	}
 
-	log.Printf("Starting Factorio server with settings: %v", string(body))
-
-	err = json.Unmarshal(body, &server)
+	var request struct {
+		Savefile string `json:"savefile"`
+		BindIP   string `json:"bindip"`
+		Port     int    `json:"port"`
+	}
+	err = json.Unmarshal(body, &request)
 	if err != nil {
 		resp = fmt.Sprintf("Error unmarshalling server settings JSON: %s", err)
 		log.Println(resp)
@@ -312,42 +309,44 @@ func StartServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if savefile was submitted with request to start server.
-	if server.Savefile == "" {
+	if request.Savefile == "" {
 		resp = "Error starting Factorio server: No save file provided"
 		log.Println(resp)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	if net.ParseIP(request.BindIP) == nil {
+		resp = "Error starting Factorio server: Invalid bind IP"
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if request.Port < 1 || request.Port > 65535 {
+		resp = "Error starting Factorio server: Port must be between 1 and 65535"
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if !strings.HasPrefix(request.Savefile, "Load Latest") {
+		if _, err = factorio.FindSave(request.Savefile); err != nil {
+			resp = fmt.Sprintf("Error starting Factorio server: %s", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	}
+	if err = server.PrepareStart(request.Savefile, request.BindIP, request.Port); err != nil {
+		resp = err.Error()
+		w.WriteHeader(http.StatusConflict)
+		return
+	}
 
 	go func() {
-		err = server.Run()
-		if err != nil {
-			log.Printf("Error starting Factorio server: %+v", err)
+		if runErr := server.Run(); runErr != nil {
+			log.Printf("Error starting Factorio server: %+v", runErr)
 			return
 		}
 	}()
 
-	timeout := 0
-	for timeout <= 3 {
-		time.Sleep(1 * time.Second)
-		if server.GetRunning() {
-			log.Printf("Running Factorio server detected")
-			break
-		} else {
-			log.Printf("Did not detect running Factorio server attempt: %+v", timeout)
-		}
-
-		timeout++
-	}
-
-	if server.GetRunning() == false {
-		resp = fmt.Sprintf("Error starting Factorio server: %s", err)
-		log.Println(resp)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	resp = fmt.Sprintf("Factorio server with save: %s started on port: %d", server.Savefile, server.Port)
+	w.WriteHeader(http.StatusAccepted)
+	resp = fmt.Sprintf("Factorio server with save: %s is starting on port: %d", request.Savefile, request.Port)
 	log.Println(resp)
 }
 
@@ -369,13 +368,32 @@ func StopServer(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		resp = fmt.Sprintf("Factorio server stopped")
+		resp = "Factorio server is stopping"
 		log.Println(resp)
 	} else {
 		resp = "Factorio server is not running"
 		w.WriteHeader(http.StatusConflict)
 		return
 	}
+}
+
+func RestartServer(w http.ResponseWriter, r *http.Request) {
+	var resp interface{}
+	defer func() { WriteResponse(w, resp) }()
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	server := factorio.GetFactorioServer()
+	if server.GetState() != factorio.StateRunning {
+		resp = "Factorio server must be running before it can be restarted"
+		w.WriteHeader(http.StatusConflict)
+		return
+	}
+	go func() {
+		if err := server.Restart(); err != nil {
+			log.Printf("Error restarting Factorio server: %v", err)
+		}
+	}()
+	w.WriteHeader(http.StatusAccepted)
+	resp = "Factorio server restart requested"
 }
 
 func KillServer(w http.ResponseWriter, r *http.Request) {
@@ -405,7 +423,7 @@ func KillServer(w http.ResponseWriter, r *http.Request) {
 
 func CheckServer(w http.ResponseWriter, r *http.Request) {
 	defer func() {
-		WriteResponse(w, factorio.GetFactorioServer())
+		WriteResponse(w, factorio.GetFactorioServer().Status())
 	}()
 
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
@@ -452,7 +470,6 @@ func UpdateServerSettings(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	log.Printf("Received settings JSON: %s", body)
 	var server = factorio.GetFactorioServer()
 
 	// Race Condition while unmarshal possible

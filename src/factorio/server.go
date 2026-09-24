@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/OpenFactorioServerManager/factorio-server-manager/api/websocket"
 	"github.com/OpenFactorioServerManager/factorio-server-manager/bootstrap"
@@ -22,12 +23,16 @@ import (
 )
 
 type Server struct {
+	mu             sync.RWMutex           `json:"-"`
 	Cmd            *exec.Cmd              `json:"-"`
 	Savefile       string                 `json:"savefile"`
 	Latency        int                    `json:"latency"`
 	BindIP         string                 `json:"bindip"`
 	Port           int                    `json:"port"`
 	Running        bool                   `json:"running"`
+	State          string                 `json:"state"`
+	LastError      string                 `json:"last_error,omitempty"`
+	RconConnected  bool                   `json:"rcon_connected"`
 	Version        Version                `json:"fac_version"`
 	BaseModVersion string                 `json:"base_mod_version"`
 	StdOut         io.ReadCloser          `json:"-"`
@@ -38,20 +43,143 @@ type Server struct {
 	LogChan        chan []string          `json:"-"`
 }
 
+type ServerStatus struct {
+	Savefile       string  `json:"savefile"`
+	Latency        int     `json:"latency"`
+	BindIP         string  `json:"bindip"`
+	Port           int     `json:"port"`
+	Running        bool    `json:"running"`
+	State          string  `json:"state"`
+	LastError      string  `json:"last_error,omitempty"`
+	RconConnected  bool    `json:"rcon_connected"`
+	Version        Version `json:"fac_version"`
+	BaseModVersion string  `json:"base_mod_version"`
+}
+
 var instantiated Server
 var once sync.Once
 
+const (
+	StateStopped  = "stopped"
+	StateStarting = "starting"
+	StateRunning  = "running"
+	StateStopping = "stopping"
+	StateError    = "error"
+)
+
+func (server *Server) broadcastStatus() {
+	response, err := json.Marshal(server.Status())
+	if err != nil {
+		log.Printf("marshal server status: %v", err)
+		return
+	}
+	websocket.WebsocketHub.GetRoom("server_status").Send(string(response))
+}
+
+func (server *Server) Status() ServerStatus {
+	server.mu.RLock()
+	defer server.mu.RUnlock()
+	return ServerStatus{
+		Savefile:       server.Savefile,
+		Latency:        server.Latency,
+		BindIP:         server.BindIP,
+		Port:           server.Port,
+		Running:        server.Running,
+		State:          server.State,
+		LastError:      server.LastError,
+		RconConnected:  server.RconConnected,
+		Version:        server.Version,
+		BaseModVersion: server.BaseModVersion,
+	}
+}
+
+func (server *Server) SetState(state string, lastError string) {
+	server.mu.Lock()
+	changed := server.State != state || server.LastError != lastError
+	server.State = state
+	server.LastError = lastError
+	server.Running = state == StateStarting || state == StateRunning || state == StateStopping
+	if state == StateStopped || state == StateError {
+		server.RconConnected = false
+	}
+	server.mu.Unlock()
+	if changed {
+		server.broadcastStatus()
+	}
+}
+
+func (server *Server) GetState() string {
+	server.mu.RLock()
+	defer server.mu.RUnlock()
+	return server.State
+}
+
+func (server *Server) SetRconConnected(connected bool) {
+	server.mu.Lock()
+	changed := server.RconConnected != connected
+	server.RconConnected = connected
+	server.mu.Unlock()
+	if changed {
+		server.broadcastStatus()
+	}
+}
+
+func (server *Server) PrepareStart(savefile string, bindIP string, port int) error {
+	server.mu.Lock()
+	if server.Running {
+		server.mu.Unlock()
+		return errors.New("Factorio server is already running or changing state")
+	}
+	server.Savefile = savefile
+	server.BindIP = bindIP
+	server.Port = port
+	server.State = StateStarting
+	server.Running = true
+	server.RconConnected = false
+	server.LastError = ""
+	server.mu.Unlock()
+	server.broadcastStatus()
+	return nil
+}
+
+func (server *Server) Restart() error {
+	server.mu.RLock()
+	savefile := server.Savefile
+	bindIP := server.BindIP
+	port := server.Port
+	running := server.Running
+	server.mu.RUnlock()
+	if !running {
+		return errors.New("Factorio server is not running")
+	}
+	if err := server.Stop(); err != nil {
+		return err
+	}
+	deadline := time.Now().Add(60 * time.Second)
+	for time.Now().Before(deadline) {
+		if server.GetState() == StateStopped {
+			if err := server.PrepareStart(savefile, bindIP, port); err != nil {
+				return err
+			}
+			return server.Run()
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	server.SetState(StateRunning, "restart timed out while waiting for Factorio to stop")
+	return errors.New("restart timed out while waiting for Factorio to stop")
+}
+
 func (server *Server) SetRunning(newState bool) {
-	if server.Running != newState {
-		log.Println("new state, will also send to correct room")
-		server.Running = newState
-		wsRoom := websocket.WebsocketHub.GetRoom("server_status")
-		response, _ := json.Marshal(server)
-		wsRoom.Send(string(response))
+	if newState {
+		server.SetState(StateRunning, "")
+	} else {
+		server.SetState(StateStopped, "")
 	}
 }
 
 func (server *Server) GetRunning() bool {
+	server.mu.RLock()
+	defer server.mu.RUnlock()
 	return server.Running
 }
 
@@ -76,6 +204,9 @@ func (server *Server) autostart() {
 }
 
 func SetFactorioServer(server Server) {
+	if server.State == "" {
+		server.State = StateStopped
+	}
 	instantiated = server
 }
 
@@ -121,7 +252,7 @@ func RefreshInstalledVersion() error {
 }
 
 func NewFactorioServer() (err error) {
-	server := Server{}
+	server := Server{State: StateStopped}
 	server.Settings = make(map[string]interface{})
 	config := bootstrap.GetConfig()
 	if err = os.MkdirAll(config.FactorioConfigDir, 0755); err != nil {
@@ -236,7 +367,15 @@ func GetFactorioServer() (f *Server) {
 	return &instantiated
 }
 
-func (server *Server) Run() error {
+func (server *Server) Run() (runErr error) {
+	if !server.GetRunning() {
+		server.SetState(StateStarting, "")
+	}
+	defer func() {
+		if runErr != nil {
+			server.SetState(StateError, runErr.Error())
+		}
+	}()
 	var err error
 	config := bootstrap.GetConfig()
 	data, err := json.MarshalIndent(server.Settings, "", "  ")
@@ -323,12 +462,16 @@ func (server *Server) Run() error {
 		log.Printf("Factorio process failed to start: %s", err)
 		return err
 	}
-	server.SetRunning(true)
+	server.SetState(StateRunning, "")
 
 	err = server.Cmd.Wait()
 	log.Printf("Factorio process is closed")
-	server.SetRunning(false)
+	wasStopping := server.GetState() == StateStopping
+	server.SetState(StateStopped, "")
 	if err != nil {
+		if wasStopping {
+			return nil
+		}
 		log.Printf("Factorio process exited with error: %s", err)
 		return err
 	}

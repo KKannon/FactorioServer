@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"reflect"
+	"sync"
 
 	"github.com/OpenFactorioServerManager/factorio-server-manager/bootstrap"
 )
@@ -64,7 +65,8 @@ type wsHub struct {
 	broadcast chan wsMessage
 
 	// a list of all rooms
-	rooms map[string]*wsRoom
+	rooms   map[string]*wsRoom
+	roomsMu sync.RWMutex
 
 	// register a client to this hub
 	register chan *wsClient
@@ -106,7 +108,13 @@ func init() {
 func (hub *wsHub) removeClient(client *wsClient) {
 	delete(hub.clients, client)
 	close(client.send)
+	hub.roomsMu.RLock()
+	rooms := make([]*wsRoom, 0, len(hub.rooms))
 	for _, room := range hub.rooms {
+		rooms = append(rooms, room)
+	}
+	hub.roomsMu.RUnlock()
+	for _, room := range rooms {
 		room.unregister <- client
 	}
 }
@@ -148,6 +156,8 @@ func (hub *wsHub) Broadcast(message interface{}) {
 // get a websocket room or create it, if it doesn't exist yet.
 // Also starts the rooms subroutine `wsRoom.run()`
 func (hub *wsHub) GetRoom(name string) *wsRoom {
+	hub.roomsMu.Lock()
+	defer hub.roomsMu.Unlock()
 	if room, ok := hub.rooms[name]; ok {
 		return room
 	} else {

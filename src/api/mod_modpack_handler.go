@@ -39,6 +39,11 @@ func CreateNewModPackMap(w http.ResponseWriter) (modPackMap factorio.ModPackMap,
 func ReadModPackRequest(w http.ResponseWriter, r *http.Request) (err error, packMap factorio.ModPackMap, modPackName string, resp interface{}) {
 	vars := mux.Vars(r)
 	modPackName = vars["modpack"]
+	if err = factorio.ValidateFileName(modPackName); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		resp = fmt.Sprintf("invalid modpack name: %s", err)
+		return
+	}
 
 	packMap, resp, err = CreateNewModPackMap(w)
 	if err != nil {
@@ -154,6 +159,12 @@ func ModPackDownloadHandler(w http.ResponseWriter, r *http.Request) {
 
 	//iterate over folder and create everything in the zip
 	err = filepath.Walk(filepath.Join(config.FactorioModPackDir, modPackName), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info == nil {
+			return nil
+		}
 		if info.IsDir() == false {
 			writer, err := zipWriter.Create(info.Name())
 			if err != nil {
@@ -224,9 +235,9 @@ func ModPackLoadHandler(w http.ResponseWriter, r *http.Request) {
 	resp = modPackMap[modPackName].Mods.ListInstalledMods()
 }
 
-//////////////////////////////////
+// ////////////////////////////////
 // Mods inside Mod Pack Handler //
-//////////////////////////////////
+// ////////////////////////////////
 func ModPackModListHandler(w http.ResponseWriter, r *http.Request) {
 	var resp interface{}
 
@@ -403,6 +414,11 @@ func ModPackModUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	if err = parseMultipartWithinLimit(w, r); err != nil {
+		resp = err.Error()
+		w.WriteHeader(http.StatusRequestEntityTooLarge)
+		return
+	}
 
 	formFile, fileHeader, err := r.FormFile("mod_file")
 	if err != nil {

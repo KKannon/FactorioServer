@@ -3,6 +3,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+### Added
+- Explicit `starting`, `running`, `stopping`, `stopped`, and `error` server lifecycle states.
+- Controlled server restart endpoint and restart action with confirmation in the panel.
+- RCON connection status in the server status response.
+
+### Changed
+- Destructive save and server operations now use non-GET HTTP methods.
+- Save and mod uploads now enforce the configured upload limit and validate file names.
+- Save deletion is blocked while Factorio is running and requires confirmation in the panel.
+
+### Fixed
+- Invalid mod archives now return an error instead of terminating the manager process.
+- RCON credentials and complete server settings are no longer written to logs.
+- Save and modpack paths are constrained to their configured data directories.
+- WebSocket room creation is synchronized to prevent intermittent concurrent-map failures.
+
 ## [0.11.0] - TBD
 ### Changed
 - Configuration environment variables are now uppercase and prefixed with FSM

@@ -14,12 +14,16 @@ import "sweetalert2/dist/sweetalert2.min.css";
 const Controls = ({serverStatus, identity}) => {
 
     const factorioVersion = serverStatus.fac_version ? serverStatus.fac_version : t('unknown');
+    const lifecycleState = serverStatus.state || (serverStatus.running ? 'running' : 'stopped');
+    const lifecycleLabel = t(lifecycleState);
+    const isTransitioning = lifecycleState === 'starting' || lifecycleState === 'stopping';
     const canManage = Boolean(identity?.can_manage);
     const [saves, setSaves] = useState([]);
     const [isDisabled, setIsDisabled] = useState(true);
     const [isStopping, setIsStopping] = useState(false);
     const [isStarting, setIsStarting] = useState(false);
     const [isKilling, setIsKilling] = useState(false);
+    const [isRestarting, setIsRestarting] = useState(false);
     const [versionTarget, setVersionTarget] = useState('stable');
     const [isChangingVersion, setIsChangingVersion] = useState(false);
 
@@ -41,6 +45,23 @@ const Controls = ({serverStatus, identity}) => {
         setIsKilling(true);
         try { await server.kill(); }
         finally { setIsKilling(false); }
+    }
+
+    const restartServer = async () => {
+        const confirmation = await Swal.fire({
+            icon: 'warning',
+            title: t('controls.restartTitle'),
+            text: t('controls.restartText'),
+            showCancelButton: true,
+            confirmButtonText: t('controls.restartConfirm'),
+            cancelButtonText: t('controls.cancel'),
+            confirmButtonColor: '#d97706',
+            cancelButtonColor: '#6b7280',
+        });
+        if (!confirmation.isConfirmed) return;
+        setIsRestarting(true);
+        try { await server.restart(); }
+        finally { setIsRestarting(false); }
     }
 
     const changeVersion = async () => {
@@ -109,7 +130,7 @@ const Controls = ({serverStatus, identity}) => {
                         ? <>
                             <div className="lg:w-1/5 mb-2">
                                 <div className="font-bold">Status</div>
-                                <div>{serverStatus.running ? t('running') : t('stopped')}</div>
+                                <div>{lifecycleLabel}</div>
                             </div>
                             <div className="lg:w-1/5 mb-2">
                                 <div className="font-bold">{t('controls.ip')}</div>
@@ -131,7 +152,7 @@ const Controls = ({serverStatus, identity}) => {
                         : <>
                             <div className="lg:w-1/5 mb-2">
                                 <div className="font-bold">Status</div>
-                                <div>{serverStatus.running ? t('running') : t('stopped')}</div>
+                                <div>{lifecycleLabel}</div>
                             </div>
                             <div className="lg:w-1/5 mb-2 mr-0 lg:mr-4">
                                 <div className="font-bold">IP</div>
@@ -187,8 +208,9 @@ const Controls = ({serverStatus, identity}) => {
                 canManage ? <div className="md:flex">
                     {serverStatus.running
                         ? <>
-                            <Button onClick={stopServer} isLoading={isStopping} isDisabled={isKilling} size="sm" className="w-full md:w-auto mb-2 md:mb-0 md:mr-2" type="default">{t('controls.stop')}</Button>
-                            <Button onClick={killServer} isLoading={isKilling} isDisabled={isStopping} size="sm" type="danger" className="w-full md:w-auto">{t('controls.kill')}</Button>
+                            <Button onClick={stopServer} isLoading={isStopping || lifecycleState === 'stopping'} isDisabled={isKilling || isTransitioning} size="sm" className="w-full md:w-auto mb-2 md:mb-0 md:mr-2" type="default">{t('controls.stop')}</Button>
+                            <Button onClick={restartServer} isLoading={isRestarting} isDisabled={isStopping || isKilling || isTransitioning} size="sm" className="w-full md:w-auto mb-2 md:mb-0 md:mr-2" type="default">{t('controls.restart')}</Button>
+                            <Button onClick={killServer} isLoading={isKilling} isDisabled={isStopping || isTransitioning} size="sm" type="danger" className="w-full md:w-auto">{t('controls.kill')}</Button>
                         </>
                         : <Button isSubmit={true} isDisabled={isDisabled} isLoading={isStarting} size="sm" type="success" className="w-full md:w-auto">{t('controls.start')}</Button>
                     }
@@ -196,6 +218,7 @@ const Controls = ({serverStatus, identity}) => {
             }
         />
         </form>
+        {serverStatus.last_error && <div className="bg-red text-white rounded px-4 py-3 mb-4">{serverStatus.last_error}</div>}
         <Panel
             className="mt-6"
             title={t('access.title')}

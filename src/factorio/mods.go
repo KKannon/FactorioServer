@@ -75,6 +75,12 @@ func ModStartUp() {
 		log.Printf("found old modpack files, rebuild into new system...")
 
 		err = filepath.Walk(oldModpackDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info == nil {
+				return nil
+			}
 			if info.IsDir() {
 				return nil
 			}

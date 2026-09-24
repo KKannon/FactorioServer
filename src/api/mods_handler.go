@@ -210,6 +210,11 @@ func ModUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	if err = parseMultipartWithinLimit(w, r); err != nil {
+		resp = err.Error()
+		w.WriteHeader(http.StatusRequestEntityTooLarge)
+		return
+	}
 
 	formFile, fileHeader, err := r.FormFile("mod_file")
 	if err != nil {
@@ -269,6 +274,12 @@ func ModDownloadHandler(w http.ResponseWriter, r *http.Request) {
 	config := bootstrap.GetConfig()
 	//iterate over folder and create everything in the zip
 	err = filepath.Walk(config.FactorioModsDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info == nil {
+			return nil
+		}
 		if info.IsDir() == false {
 			//Lock the file, that we are want to read
 			err := factorio.FileLock.RLock(path)
@@ -343,7 +354,18 @@ func LoadModsFromSaveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	config := bootstrap.GetConfig()
-	path := filepath.Join(config.FactorioSavesDir, saveFileStruct.Name)
+	save, err := factorio.FindSave(saveFileStruct.Name)
+	if err != nil {
+		resp = fmt.Sprintf("cannot find save: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	path, err := factorio.ResolveDataPath(config.FactorioSavesDir, save.Name)
+	if err != nil {
+		resp = fmt.Sprintf("invalid save path: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	f, err := factorio.OpenArchiveFile(path, "level.dat", "level-init.dat")
 	if err != nil {

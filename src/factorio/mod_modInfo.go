@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -49,6 +50,12 @@ func (modInfoList *ModInfoList) listInstalledMods() error {
 	modInfoList.Mods = nil
 
 	err = filepath.Walk(modInfoList.Destination, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info == nil {
+			return nil
+		}
 		if !info.IsDir() && filepath.Ext(path) == ".zip" {
 
 			err = FileLock.RLock(path)
@@ -63,15 +70,14 @@ func (modInfoList *ModInfoList) listInstalledMods() error {
 
 			zipFile, err := zip.OpenReader(path)
 			if err != nil {
-				log.Fatalln(err)
-				return err
+				return fmt.Errorf("open mod archive %q: %w", info.Name(), err)
 			}
 			defer zipFile.Close()
 
 			var modInfo ModInfo
 			err = modInfo.getModInfo(&zipFile.Reader)
 			if err != nil {
-				log.Fatalf("Error in getModInfo: %s", err)
+				return fmt.Errorf("read mod metadata from %q: %w", info.Name(), err)
 			}
 
 			modInfo.FileName = info.Name()
@@ -170,14 +176,13 @@ func (modInfo *ModInfo) getModInfo(reader *zip.Reader) error {
 			rc, err := singleFile.Open()
 
 			if err != nil {
-				log.Fatal(err)
-				return err
+				return fmt.Errorf("open info.json: %w", err)
 			}
 
 			byteArray, err := ioutil.ReadAll(rc)
 			if err != nil {
-				log.Fatal(err)
-				return err
+				rc.Close()
+				return fmt.Errorf("read info.json: %w", err)
 			}
 			err = rc.Close()
 			if err != nil {
@@ -187,8 +192,7 @@ func (modInfo *ModInfo) getModInfo(reader *zip.Reader) error {
 
 			err = json.Unmarshal(byteArray, modInfo)
 			if err != nil {
-				log.Fatalln(err)
-				return err
+				return fmt.Errorf("parse info.json: %w", err)
 			}
 
 			return nil
@@ -202,7 +206,10 @@ func (modInfoList *ModInfoList) createMod(modName string, fileName string, modFi
 	var err error
 
 	//save uploaded file
-	filePath := filepath.Join(modInfoList.Destination, fileName)
+	filePath, err := ResolveDataPath(modInfoList.Destination, fileName)
+	if err != nil {
+		return err
+	}
 	newFile, err := os.Create(filePath)
 	if err != nil {
 		log.Printf("error on creating new file - %s: %s", fileName, err)

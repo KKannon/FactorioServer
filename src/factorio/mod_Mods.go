@@ -94,6 +94,9 @@ func (mods *Mods) DeleteMod(modName string) error {
 
 func (mods *Mods) createMod(modName string, fileName string, fileRc io.Reader) error {
 	var err error
+	if err = ValidateFileName(fileName); err != nil {
+		return err
+	}
 
 	//check if mod already exists and delete it
 	if mods.ModSimpleList.CheckModExists(modName) {
@@ -178,6 +181,9 @@ func (mods *Mods) DownloadMod(url string, filename string, modId string) error {
 
 func (mods *Mods) UploadMod(file multipart.File, header *multipart.FileHeader) error {
 	var err error
+	if err = ValidateFileName(header.Filename); err != nil {
+		return err
+	}
 
 	if filepath.Ext(header.Filename) != ".zip" {
 		log.Print("The uploaded file wasn't a zip-file")

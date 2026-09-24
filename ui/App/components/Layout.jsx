@@ -16,12 +16,10 @@ const Layout = ({identity, handleLogout, serverStatus}) => {
         let text = t('unknown');
         let color = 'gray-light';
 
-        if (info && info.running) {
-            text = t('running');
-            color = 'green';
-        } else if (info && !info.running) {
-            text = t('stopped');
-            color = 'red';
+        if (info) {
+            const state = info.state || (info.running ? 'running' : 'stopped');
+            text = t(state);
+            color = state === 'running' ? 'green' : state === 'starting' || state === 'stopping' ? 'orange' : 'red';
         }
 
         return (

@@ -19,6 +19,7 @@ func connectRC() error {
 		log.Printf("Cannot create rcon session: %s", err)
 		return err
 	}
+	server.SetRconConnected(true)
 	log.Printf("rcon session established on %s", rconAddr)
 
 	return nil

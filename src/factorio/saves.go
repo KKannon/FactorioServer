@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/OpenFactorioServerManager/factorio-server-manager/bootstrap"
@@ -26,21 +27,31 @@ func (s *Save) String() string {
 func ListSaves() (saves []Save, err error) {
 	config := bootstrap.GetConfig()
 	saves = []Save{}
-	err = filepath.Walk(config.FactorioSavesDir, func(path string, info os.FileInfo, err error) error {
-		if info == nil || (info.IsDir() && info.Name() == "saves") {
-			return nil
+	entries, err := os.ReadDir(config.FactorioSavesDir)
+	if err != nil {
+		return saves, err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.EqualFold(filepath.Ext(entry.Name()), ".zip") {
+			continue
+		}
+		info, infoErr := entry.Info()
+		if infoErr != nil {
+			return saves, infoErr
 		}
 		saves = append(saves, Save{
 			info.Name(),
 			info.ModTime(),
 			info.Size(),
 		})
-		return nil
-	})
+	}
 	return
 }
 
 func FindSave(name string) (*Save, error) {
+	if err := ValidateSaveName(name); err != nil {
+		return nil, err
+	}
 	saves, err := ListSaves()
 	if err != nil {
 		return nil, fmt.Errorf("error listing saves: %v", err)
@@ -56,11 +67,12 @@ func FindSave(name string) (*Save, error) {
 }
 
 func (s *Save) Remove() error {
-	if s.Name == "" {
-		return errors.New("save name cannot be blank")
-	}
 	config := bootstrap.GetConfig()
-	return os.Remove(filepath.Join(config.FactorioSavesDir, s.Name))
+	path, err := ResolveDataPath(config.FactorioSavesDir, s.Name)
+	if err != nil {
+		return err
+	}
+	return os.Remove(path)
 }
 
 // Create savefiles for Factorio
@@ -86,22 +98,14 @@ func CreateSave(filePath string) (string, error) {
 }
 
 func GetLatestSave() (save Save, err error) {
-	config := bootstrap.GetConfig()
-
-	err = filepath.Walk(config.FactorioSavesDir, func(path string, info os.FileInfo, err error) error {
-		if info == nil || (info.IsDir() && info.Name() == "saves") {
-			return nil
+	saves, err := ListSaves()
+	if err != nil {
+		return save, err
+	}
+	for _, candidate := range saves {
+		if save.LastMod.Before(candidate.LastMod) {
+			save = candidate
 		}
-
-		if save.LastMod.Before(info.ModTime()) {
-			save = Save{
-				Name:    info.Name(),
-				LastMod: info.ModTime(),
-				Size:    info.Size(),
-			}
-		}
-		return nil
-	})
-
+	}
 	return
 }

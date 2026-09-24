@@ -7,6 +7,8 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faDownload, faTrashAlt} from "@fortawesome/free-solid-svg-icons";
 import {formatDateTime} from "../../../identity/preferences";
 import {t} from "../../../identity/preferences";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
 
 const Saves = ({serverStatus, canManage}) => {
 
@@ -27,6 +29,17 @@ const Saves = ({serverStatus, canManage}) => {
     }, []);
 
     const deleteSave = async (save) => {
+        const confirmation = await Swal.fire({
+            icon: 'warning',
+            title: t('saves.deleteTitle'),
+            text: t('saves.deleteText', {name: save.name}),
+            showCancelButton: true,
+            confirmButtonText: t('saves.deleteConfirm'),
+            cancelButtonText: t('controls.cancel'),
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+        });
+        if (!confirmation.isConfirmed) return;
         const res = await savesResource.delete(save);
         if (res) {
             updateList()
@@ -75,12 +88,12 @@ const Saves = ({serverStatus, canManage}) => {
                                     <td className="pr-4">{formatDateTime(save.last_mod)}</td>
                                     <td className="pr-4">{parseFloat(save.size / 1024 / 1024).toFixed(3)} MB</td>
                                     <td>
-                                        <a href={`/api/saves/dl/${save.name}`} className="mr-2">
+                                        <a href={`/api/saves/dl/${encodeURIComponent(save.name)}`} className="mr-2">
                                             <FontAwesomeIcon
                                                 className="text-gray-light cursor-pointer hover:text-orange"
                                                 icon={faDownload}/>
                                         </a>
-                                        {canManage && <FontAwesomeIcon className="text-red cursor-pointer hover:text-red-light mr-2"
+                                        {canManage && !serverStatus.running && <FontAwesomeIcon className="text-red cursor-pointer hover:text-red-light mr-2"
                                                          onClick={() => deleteSave(save)} icon={faTrashAlt}/>
                                         }
                                     </td>

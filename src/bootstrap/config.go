@@ -131,8 +131,7 @@ func (config *Config) updateConfigFile() {
 		// password is "factorio" .. change it
 		conf.FactorioRconPass = GenerateRandomPassword()
 
-		log.Println("Rcon password default one or empty, generated new one:")
-		log.Printf("Password: %s", conf.FactorioRconPass)
+		log.Println("Rcon password default one or empty; generated a new secret")
 
 		resave = true
 	}
@@ -229,7 +228,7 @@ func (config *Config) mapFlags(flags Flags) {
 	config.ConsoleLogFile = filepath.Join(flags.FactorioDir, "factorio-server-console.log")
 	config.FactorioRconPort = flags.FactorioRconPort
 
-	config.MaxUploadSize = flags.FactorioMaxUpload * 100000
+	config.MaxUploadSize = flags.FactorioMaxUpload * 1024 * 1024
 	log.Printf("Max upload: %d", config.MaxUploadSize)
 	log.Printf("Conffile: %s", config.ConfFile)
 
