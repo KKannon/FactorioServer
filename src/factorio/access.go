@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	accessFileMutex = sync.Mutex{}
+	accessFileMutex   = sync.Mutex{}
 	playerNamePattern = regexp.MustCompile(`^[A-Za-z0-9_.-]{2,64}$`)
 )
 

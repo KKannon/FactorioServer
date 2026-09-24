@@ -78,22 +78,22 @@ func (p *UserPreferences) normalize() {
 // AuthUser is the sole application-facing identity adapter. Tokens and raw
 // provider payloads never leave the backend authentication layer.
 type AuthUser struct {
-	Subject      string            `json:"sub"`
-	PublicUserID string            `json:"public_user_id"`
-	Email        string            `json:"email"`
-	Name         string            `json:"name"`
-	GivenName    string            `json:"given_name"`
-	FamilyName   string            `json:"family_name"`
-	Picture      string            `json:"picture,omitempty"`
-	Username     string            `json:"username,omitempty"`
-	PreferredUsername string       `json:"preferred_username,omitempty"`
-	GameUsername string            `json:"game_username,omitempty"`
-	CanManage   bool               `json:"can_manage"`
-	OriginApp    string            `json:"origin_app"`
-	Apps         []string          `json:"apps"`
-	Role         string            `json:"role"`
-	Roles        map[string]string `json:"roles"`
-	Preferences  UserPreferences   `json:"preferences"`
+	Subject           string            `json:"sub"`
+	PublicUserID      string            `json:"public_user_id"`
+	Email             string            `json:"email"`
+	Name              string            `json:"name"`
+	GivenName         string            `json:"given_name"`
+	FamilyName        string            `json:"family_name"`
+	Picture           string            `json:"picture,omitempty"`
+	Username          string            `json:"username,omitempty"`
+	PreferredUsername string            `json:"preferred_username,omitempty"`
+	GameUsername      string            `json:"game_username,omitempty"`
+	CanManage         bool              `json:"can_manage"`
+	OriginApp         string            `json:"origin_app"`
+	Apps              []string          `json:"apps"`
+	Role              string            `json:"role"`
+	Roles             map[string]string `json:"roles"`
+	Preferences       UserPreferences   `json:"preferences"`
 }
 
 func (u AuthUser) FactorioUsername() string {

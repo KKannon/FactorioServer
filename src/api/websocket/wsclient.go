@@ -93,7 +93,7 @@ func (client *wsClient) readPump() {
 							go handler(message.Controls)
 						}
 					}
-			}
+				}
 			} else if client.canControl {
 				client.hub.broadcast <- message
 			}
@@ -162,9 +162,9 @@ func ServeWs(w http.ResponseWriter, r *http.Request, canControl bool) {
 
 	// setup the client
 	client := &wsClient{
-		hub:  WebsocketHub,
-		conn: conn,
-		send: make(chan wsMessage, 256),
+		hub:        WebsocketHub,
+		conn:       conn,
+		send:       make(chan wsMessage, 256),
 		canControl: canControl,
 	}
 
