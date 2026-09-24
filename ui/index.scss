@@ -30,6 +30,41 @@ html[data-compact="true"] .container { max-width: 90rem; }
 .identity-copy { display: flex; flex-direction: column; min-width: 0; text-align: left; }
 .identity-copy strong, .identity-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Keep both version confirmation actions visible above the viewport fold. */
+.version-warning-popup { max-height: calc(100vh - 1.25rem); overflow: hidden; }
+.version-warning-content { max-height: 38vh; overflow-y: auto; }
+.version-warning-actions {
+  display: flex !important;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .75rem;
+  width: 100% !important;
+  margin: 1.25rem 0 0 !important;
+  padding: 0 1.25rem !important;
+}
+.version-warning-button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 9rem;
+  min-height: 2.75rem;
+  padding: .65rem 1.1rem;
+  border: 0;
+  border-radius: .25rem;
+  color: #fff !important;
+  font-weight: 700;
+  cursor: pointer;
+}
+.version-warning-confirm { background: #c92f35 !important; }
+.version-warning-cancel { background: #626d78 !important; }
+.version-warning-button:hover { filter: brightness(1.12); }
+.version-warning-button:focus-visible { outline: 3px solid rgba(227, 152, 39, .65); outline-offset: 2px; }
+.version-warning-button:disabled { cursor: wait; opacity: .7; }
+
+@media (max-width: 420px) {
+  .version-warning-button { width: 100%; }
+}
+
 .accentuated-t {
   border-top: 2px solid rgba(255, 255, 255, 0.1);
 }

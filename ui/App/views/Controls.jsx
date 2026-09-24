@@ -62,6 +62,15 @@ const Controls = ({serverStatus, identity}) => {
             confirmButtonText: t('version.confirm'),
             cancelButtonText: t('version.cancel'),
             confirmButtonColor: '#d33',
+            cancelButtonColor: '#6b7280',
+            buttonsStyling: false,
+            customClass: {
+                popup: 'version-warning-popup',
+                htmlContainer: 'version-warning-content',
+                actions: 'version-warning-actions',
+                confirmButton: 'version-warning-button version-warning-confirm',
+                cancelButton: 'version-warning-button version-warning-cancel',
+            },
             showLoaderOnConfirm: true,
             allowOutsideClick: () => !Swal.isLoading(),
             preConfirm: async () => {
