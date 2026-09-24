@@ -406,6 +406,14 @@ func OIDCCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	token, err := auth.oauth.Exchange(r.Context(), code, oauth2.SetAuthURLParam("code_verifier", attempt.CodeVerifier))
 	if err != nil {
+		// Keep enough information to diagnose provider/configuration failures without
+		// ever logging the authorization code, PKCE verifier, client secret or tokens.
+		var retrieveErr *oauth2.RetrieveError
+		if errors.As(err, &retrieveErr) {
+			log.Printf("OIDC token exchange failed: status=%d oauth_error=%q verifier_length=%d", retrieveErr.Response.StatusCode, retrieveErr.ErrorCode, len(attempt.CodeVerifier))
+		} else {
+			log.Printf("OIDC token exchange request failed: error_type=%T verifier_length=%d", err, len(attempt.CodeVerifier))
+		}
 		http.Redirect(w, r, "/login?error=token_exchange", http.StatusSeeOther)
 		return
 	}
