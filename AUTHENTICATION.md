@@ -28,8 +28,13 @@ Copy `.env.example` to `.env`. Set the secret supplied separately:
 
 ```dotenv
 STUPID_AUTHENTICATOR_CLIENT_SECRET=CLIENT_SECRET_PROVIDED_SEPARATELY
+STUPID_AUTHENTICATOR_ISSUER=https://authenticator.stupidll.com/o
 STUPID_AUTHENTICATOR_REDIRECT_URI=https://factorio.stupidll.com/auth/callback
 ```
+
+The issuer includes `/o` because it must exactly match the provider discovery
+document and the `iss` claim in ID tokens. The browser-facing provider base URL
+remains `https://authenticator.stupidll.com`.
 
 The startup validation accepts only the three registered callback URLs from the
 provider configuration. Production should use the HTTPS callback above.

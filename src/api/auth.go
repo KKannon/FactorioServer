@@ -28,7 +28,8 @@ import (
 )
 
 const (
-	defaultIssuer        = "https://authenticator.stupidll.com"
+	defaultProviderBase  = "https://authenticator.stupidll.com"
+	defaultIssuer        = defaultProviderBase + "/o"
 	defaultClientID      = "laXVUHiwiUGnNVyMrGKqYf03V1mdIS3JlU5Vk4ka"
 	defaultAppSlug       = "factorio-server-manager"
 	loginAttemptLifetime = 10 * time.Minute
@@ -84,11 +85,11 @@ func loadOIDCConfig() (OIDCConfig, error) {
 		Issuer: issuer, ClientID: envOrDefault("STUPID_AUTHENTICATOR_CLIENT_ID", defaultClientID),
 		ClientSecret: os.Getenv("STUPID_AUTHENTICATOR_CLIENT_SECRET"), RedirectURI: os.Getenv("STUPID_AUTHENTICATOR_REDIRECT_URI"),
 		AppSlug:          envOrDefault("STUPID_AUTHENTICATOR_APP_SLUG", defaultAppSlug),
-		AuthorizationURL: envOrDefault("STUPID_AUTHENTICATOR_AUTHORIZATION_URL", issuer+"/o/authorize/"),
-		TokenURL:         envOrDefault("STUPID_AUTHENTICATOR_TOKEN_URL", issuer+"/o/token/"),
-		UserInfoURL:      envOrDefault("STUPID_AUTHENTICATOR_USERINFO_URL", issuer+"/o/userinfo/"),
-		JWKSURL:          envOrDefault("STUPID_AUTHENTICATOR_JWKS_URL", issuer+"/o/.well-known/jwks.json"),
-		LogoutURL:        envOrDefault("STUPID_AUTHENTICATOR_LOGOUT_URL", issuer+"/o/logout/"),
+		AuthorizationURL: envOrDefault("STUPID_AUTHENTICATOR_AUTHORIZATION_URL", defaultProviderBase+"/o/authorize/"),
+		TokenURL:         envOrDefault("STUPID_AUTHENTICATOR_TOKEN_URL", defaultProviderBase+"/o/token/"),
+		UserInfoURL:      envOrDefault("STUPID_AUTHENTICATOR_USERINFO_URL", defaultProviderBase+"/o/userinfo/"),
+		JWKSURL:          envOrDefault("STUPID_AUTHENTICATOR_JWKS_URL", defaultProviderBase+"/o/.well-known/jwks.json"),
+		LogoutURL:        envOrDefault("STUPID_AUTHENTICATOR_LOGOUT_URL", defaultProviderBase+"/o/logout/"),
 	}
 	if config.ClientSecret == "" {
 		return config, errors.New("STUPID_AUTHENTICATOR_CLIENT_SECRET is required")

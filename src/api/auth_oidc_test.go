@@ -189,6 +189,7 @@ func TestSafeReturnPathRejectsExternalURLs(t *testing.T) {
 
 func TestConfigurationAcceptsOnlyRegisteredRedirects(t *testing.T) {
 	t.Setenv("STUPID_AUTHENTICATOR_CLIENT_SECRET", "secret")
+	t.Setenv("STUPID_AUTHENTICATOR_ISSUER", "")
 	t.Setenv("STUPID_AUTHENTICATOR_REDIRECT_URI", "https://evil.example/auth/callback")
 	_, err := loadOIDCConfig()
 	require.Error(t, err)
@@ -196,6 +197,7 @@ func TestConfigurationAcceptsOnlyRegisteredRedirects(t *testing.T) {
 	config, err := loadOIDCConfig()
 	require.NoError(t, err)
 	require.Equal(t, defaultClientID, config.ClientID)
+	require.Equal(t, "https://authenticator.stupidll.com/o", config.Issuer)
 }
 
 func TestManagementAuthorizationIsEnforcedServerSide(t *testing.T) {
