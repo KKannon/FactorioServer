@@ -78,7 +78,7 @@ func TestOIDCCallbackCreatesServerSessionAndLogoutDeletesIt(t *testing.T) {
 		case "/userinfo":
 			require.Equal(t, "Bearer access-secret", r.Header.Get("Authorization"))
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{"sub": "subject-1", "public_user_id": "11111111-1111-1111-1111-111111111111", "email": "user@example.com", "name": "Test User", "role": "admin", "roles": map[string]string{defaultAppSlug: "admin"}, "preferences": map[string]interface{}{"theme": "system", "accent_color": "#E39827", "language": "pt-BR", "timezone": "America/Sao_Paulo", "date_format": "DD/MM/YYYY"}})
+			json.NewEncoder(w).Encode(map[string]interface{}{"sub": "subject-1", "public_user_id": "11111111-1111-1111-1111-111111111111", "email": "user@example.com", "username": "factorio-user", "preferred_username": "factorio-user", "name": "Test User", "role": "admin", "roles": map[string]string{defaultAppSlug: "admin"}, "preferences": map[string]interface{}{"theme": "system", "accent_color": "#E39827", "language": "pt-BR", "timezone": "America/Sao_Paulo", "date_format": "DD/MM/YYYY"}})
 		default:
 			http.NotFound(w, r)
 		}
@@ -118,6 +118,8 @@ func TestOIDCCallbackCreatesServerSessionAndLogoutDeletesIt(t *testing.T) {
 	AuthMiddleware(http.HandlerFunc(CurrentUser)).ServeHTTP(statusRecorder, statusRequest)
 	require.Equal(t, http.StatusOK, statusRecorder.Code)
 	require.Contains(t, statusRecorder.Body.String(), "public_user_id")
+	require.Contains(t, statusRecorder.Body.String(), `"username":"factorio-user"`)
+	require.Contains(t, statusRecorder.Body.String(), `"game_username":"factorio-user"`)
 	logoutRecorder := httptest.NewRecorder()
 	logoutRequest := httptest.NewRequest(http.MethodGet, "/auth/logout", nil)
 	logoutRequest.AddCookie(cookie)
@@ -140,6 +142,12 @@ func TestPreferencesMappingPreservesUnknownFieldsAndNormalizes(t *testing.T) {
 	require.Contains(t, string(encoded), "future_option")
 	require.Equal(t, "TU", (AuthUser{Name: "Test User"}).Initials())
 	require.Equal(t, "?", (AuthUser{}).Initials())
+}
+
+func TestFactorioUsernamePrefersCurrentUserInfoClaim(t *testing.T) {
+	user := AuthUser{Username: "current-user", PreferredUsername: "preferred-user", GameUsername: "stale-email-local", Email: "wrong@example.com"}
+	require.Equal(t, "current-user", user.FactorioUsername())
+	require.Empty(t, (AuthUser{Email: "must-not-be-used@example.com"}).FactorioUsername())
 }
 
 func TestUserInfo401RefreshesOnceAndUpdatesProfile(t *testing.T) {

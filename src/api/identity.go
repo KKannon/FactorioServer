@@ -97,13 +97,13 @@ type AuthUser struct {
 }
 
 func (u AuthUser) FactorioUsername() string {
-	for _, candidate := range []string{u.GameUsername, u.PreferredUsername, u.Username} {
+	// The account username from UserInfo is authoritative. GameUsername is a
+	// derived response field and may be stale in sessions created by an older
+	// application version, so it must never override the current claim.
+	for _, candidate := range []string{u.Username, u.PreferredUsername, u.GameUsername} {
 		if value := strings.TrimSpace(candidate); value != "" {
 			return value
 		}
-	}
-	if local, _, ok := strings.Cut(u.Email, "@"); ok {
-		return local
 	}
 	return ""
 }

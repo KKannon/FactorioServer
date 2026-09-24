@@ -157,6 +157,11 @@ func newAuth(config OIDCConfig, db *gorm.DB, aead cipher.AEAD, secure bool) Auth
 func (a *Auth) prepareUser(user AuthUser) AuthUser {
 	_, user.CanManage = a.managementRoles[user.Role]
 	user.GameUsername = user.FactorioUsername()
+	// Keep the public response consistent even with providers that only expose
+	// the standard OIDC preferred_username alias.
+	if strings.TrimSpace(user.Username) == "" {
+		user.Username = strings.TrimSpace(user.PreferredUsername)
+	}
 	if user.GameUsername != "" {
 		if err := factorio.EnsurePlayerAccess(user.GameUsername, user.CanManage); err != nil {
 			log.Printf("could not synchronize Factorio access for user %s: %v", user.PublicUserID, err)
@@ -477,6 +482,15 @@ func CurrentUser(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
+	}
+	// Always source username and other mutable profile fields from UserInfo on
+	// page load. This also repairs sessions created before username was mapped.
+	if session, _, err := auth.sessionFromRequest(r); err == nil {
+		if refreshed, refreshErr := auth.refreshProfile(r.Context(), session, true); refreshErr == nil {
+			user = refreshed
+		} else {
+			log.Printf("could not refresh current user profile: %v", refreshErr)
+		}
 	}
 	user = auth.prepareUser(user)
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
