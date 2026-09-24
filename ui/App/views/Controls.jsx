@@ -8,6 +8,8 @@ import Select from "../components/Select";
 import Input from "../components/Input";
 import Error from "../components/Error";
 import {t} from "../../identity/preferences";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
 
 const Controls = ({serverStatus, identity}) => {
 
@@ -18,6 +20,8 @@ const Controls = ({serverStatus, identity}) => {
     const [isStopping, setIsStopping] = useState(false);
     const [isStarting, setIsStarting] = useState(false);
     const [isKilling, setIsKilling] = useState(false);
+    const [versionTarget, setVersionTarget] = useState('stable');
+    const [isChangingVersion, setIsChangingVersion] = useState(false);
 
     const { handleSubmit, reset, register, formState: {errors} } = useForm();
 
@@ -38,6 +42,41 @@ const Controls = ({serverStatus, identity}) => {
         try { await server.kill(); }
         finally { setIsKilling(false); }
     }
+
+    const changeVersion = async () => {
+        const requested = versionTarget.trim();
+        if (!/^(stable|latest|\d+\.\d+\.\d+)$/.test(requested)) {
+            await Swal.fire({icon: 'error', title: t('version.invalidTitle'), text: t('version.invalidText')});
+            return;
+        }
+        const normalizedCurrent = factorioVersion.replace(/\.0$/, '');
+        if (requested === normalizedCurrent) {
+            await Swal.fire({icon: 'info', title: t('version.sameTitle'), text: t('version.sameText', {version: factorioVersion})});
+            return;
+        }
+        const confirmation = await Swal.fire({
+            icon: 'warning',
+            title: t('version.warningTitle'),
+            html: `<p>${t('version.warningIntro', {current: factorioVersion, requested})}</p><ul style="text-align:left;margin:1rem 1.5rem"><li>${t('version.warningSave')}</li><li>${t('version.warningMods')}</li><li>${t('version.warningDowngrade')}</li></ul><strong>${t('version.warningBackup')}</strong>`,
+            showCancelButton: true,
+            confirmButtonText: t('version.confirm'),
+            cancelButtonText: t('version.cancel'),
+            confirmButtonColor: '#d33',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: () => !Swal.isLoading(),
+            preConfirm: async () => {
+                try { return await server.installVersion(requested); }
+                catch (error) {
+                    Swal.showValidationMessage(error.response?.data || t('version.failed'));
+                    return false;
+                }
+            },
+        });
+        if (!confirmation.isConfirmed) return;
+        setIsChangingVersion(true);
+        await Swal.fire({icon: 'success', title: t('version.successTitle'), text: t('version.successText', {version: confirmation.value.installed_version})});
+        window.location.reload();
+    };
 
     useEffect(() => {
         savesResource.list(true)
@@ -109,6 +148,12 @@ const Controls = ({serverStatus, identity}) => {
                             <div className="lg:w-1/5 mb-2 mr-0 lg:mr-4">
                                 <div className="font-bold">{t('controls.version')}</div>
                                 <div>{factorioVersion}</div>
+                                {canManage && <div className="mt-2">
+                                    <input aria-label={t('version.target')} list="factorio-version-options" className="shadow border w-full py-2 px-3 text-black" value={versionTarget} onChange={event => setVersionTarget(event.target.value)} placeholder="2.0.77"/>
+                                    <datalist id="factorio-version-options"><option value="stable"/><option value="latest"/></datalist>
+                                    <Button onClick={changeVersion} isLoading={isChangingVersion} size="sm" className="mt-2 w-full">{t('version.change')}</Button>
+                                    <p className="text-xs mt-1 opacity-80">{t('version.help')}</p>
+                                </div>}
                             </div>
                             <div className="lg:w-1/5 mb-2">
                                 <div className="font-bold">{t('controls.save')}</div>

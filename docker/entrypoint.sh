@@ -19,7 +19,17 @@ random_pass() {
 }
 
 install_game() {
-    curl --location "https://www.factorio.com/get-download/${FACTORIO_VERSION}/headless/linux64" \
+    version_file="/opt/factorio/config/fsm-version"
+    if [ -s "$version_file" ]; then
+        saved_version="$(tr -d '\r\n ' < "$version_file")"
+        if printf '%s' "$saved_version" | grep -Eq '^(stable|latest|[0-9]+\.[0-9]+\.[0-9]+)$'; then
+            FACTORIO_VERSION="$saved_version"
+        else
+            echo "Ignoring invalid saved Factorio version: $saved_version"
+        fi
+    fi
+    echo "Installing Factorio selection: ${FACTORIO_VERSION}"
+    curl --fail --show-error --location "https://www.factorio.com/get-download/${FACTORIO_VERSION}/headless/linux64" \
          --output /tmp/factorio_${FACTORIO_VERSION}.tar.xz
     tar -xf /tmp/factorio_${FACTORIO_VERSION}.tar.xz
     rm /tmp/factorio_${FACTORIO_VERSION}.tar.xz

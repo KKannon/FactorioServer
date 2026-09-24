@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -78,6 +79,47 @@ func SetFactorioServer(server Server) {
 	instantiated = server
 }
 
+func loadInstalledVersion(server *Server, config bootstrap.Config) error {
+	var (
+		out []byte
+		err error
+	)
+	if config.GlibcCustom == "true" {
+		out, err = exec.Command(config.GlibcLocation, "--library-path", config.GlibcLibLoc, config.FactorioBinary, "--version").Output()
+	} else {
+		out, err = exec.Command(config.FactorioBinary, "--version").Output()
+	}
+	if err != nil {
+		return fmt.Errorf("load Factorio version: %w", err)
+	}
+
+	match := regexp.MustCompile(`Version.*?((\d+\.)?(\d+\.)?(\*|\d+)+)`).FindStringSubmatch(string(out))
+	if len(match) < 2 {
+		return fmt.Errorf("Factorio returned an unrecognized version string")
+	}
+	if err = server.Version.UnmarshalText([]byte(match[1])); err != nil {
+		return fmt.Errorf("parse Factorio version: %w", err)
+	}
+
+	baseModInfoFile := filepath.Join(config.FactorioBaseModDir, "info.json")
+	baseModData, err := ioutil.ReadFile(baseModInfoFile)
+	if err != nil {
+		return fmt.Errorf("open base mod info: %w", err)
+	}
+	var modInfo ModInfo
+	if err = json.Unmarshal(baseModData, &modInfo); err != nil {
+		return fmt.Errorf("parse base mod info: %w", err)
+	}
+	server.BaseModVersion = modInfo.Version
+	return nil
+}
+
+// RefreshInstalledVersion reloads the executable and base mod versions after
+// an in-place Factorio installation change.
+func RefreshInstalledVersion() error {
+	return loadInstalledVersion(GetFactorioServer(), bootstrap.GetConfig())
+}
+
 func NewFactorioServer() (err error) {
 	server := Server{}
 	server.Settings = make(map[string]interface{})
@@ -145,42 +187,10 @@ func NewFactorioServer() (err error) {
 
 	log.Printf("Loaded Factorio settings from %s\n", settingsPath)
 
-	out := []byte{}
-	//Load factorio version
-	if config.GlibcCustom == "true" {
-		out, err = exec.Command(config.GlibcLocation, "--library-path", config.GlibcLibLoc, config.FactorioBinary, "--version").Output()
-	} else {
-		out, err = exec.Command(config.FactorioBinary, "--version").Output()
-	}
-
-	if err != nil {
-		log.Printf("error on loading factorio version: %s", err)
+	if err = loadInstalledVersion(&server, config); err != nil {
+		log.Printf("error loading installed Factorio version: %v", err)
 		return
 	}
-
-	reg := regexp.MustCompile("Version.*?((\\d+\\.)?(\\d+\\.)?(\\*|\\d+)+)")
-	found := reg.FindStringSubmatch(string(out))
-	err = server.Version.UnmarshalText([]byte(found[1]))
-	if err != nil {
-		log.Printf("could not parse version: %v", err)
-		return
-	}
-
-	//Load baseMod version
-	baseModInfoFile := filepath.Join(config.FactorioBaseModDir, "info.json")
-	bmifBa, err := ioutil.ReadFile(baseModInfoFile)
-	if err != nil {
-		log.Printf("couldn't open baseMods info.json: %s", err)
-		return
-	}
-	var modInfo ModInfo
-	err = json.Unmarshal(bmifBa, &modInfo)
-	if err != nil {
-		log.Printf("error unmarshalling baseMods info.json to a modInfo: %s", err)
-		return
-	}
-
-	server.BaseModVersion = modInfo.Version
 
 	// load admins from additional file
 	if (server.Version.Greater(Version{0, 17, 0})) {

@@ -152,6 +152,7 @@ var managementRoutes = map[string]bool{
 	"LogTail": true, "LoadConfig": true, "FactorioVersion": true, "GetServerSettings": true,
 	"UploadSave": true, "RemoveSave": true, "CreateSave": true, "LoadModsFromSave": true,
 	"StartServer": true, "StopServer": true, "KillServer": true, "UpdateServerSettings": true,
+	"InstallFactorioVersion": true,
 	"ModPortalListAllMods": true, "ModPortalGetModInfo": true, "ModPortalLoginStatus": true,
 	"ModPortalInstallMod": true, "ModPortalLogin": true, "ModPortalLogout": true, "ModPortalInstallMultiple": true,
 	"ListInstalledMods": true, "ToggleMod": true, "DeleteMod": true, "DeleteAllMods": true, "UpdateMod": true, "UploadMod": true, "DownloadMods": true,
@@ -249,6 +250,12 @@ var apiRoutes = Routes{
 		"/server/facVersion",
 		FactorioVersion,
 		false,
+	}, {
+		"InstallFactorioVersion",
+		"POST",
+		"/server/version",
+		InstallFactorioVersion,
+		true,
 	}, {
 		"StatusUser",
 		"GET",
