@@ -25,7 +25,7 @@ const renderGate = props => {
 describe('ServerStatusGate', () => {
     it('keeps status-dependent views unmounted while status is loading', () => {
         const container = renderGate({status: null, loading: false, error: null});
-        expect(container.textContent).toContain('Loading server status...');
+        expect(container.textContent).toContain('Carregando');
         expect(container.textContent).not.toContain('Protected server controls');
     });
 

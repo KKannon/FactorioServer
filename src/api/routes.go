@@ -80,7 +80,9 @@ func NewRouter() *mux.Router {
 		Handler(
 			http.HandlerFunc(
 				func(w http.ResponseWriter, r *http.Request) {
-					websocket.ServeWs(w, r)
+					user, _ := r.Context().Value(authContextKey{}).(AuthUser)
+					_, canManage := auth.managementRoles[user.Role]
+					websocket.ServeWs(w, r, canManage)
 				},
 			),
 		)
@@ -147,10 +149,13 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 // Read operations are available to every user linked to this app. Mutating or
 // credential-bearing operations additionally require a configured management role.
 var managementRoutes = map[string]bool{
+	"LogTail": true, "LoadConfig": true, "FactorioVersion": true, "GetServerSettings": true,
 	"UploadSave": true, "RemoveSave": true, "CreateSave": true, "LoadModsFromSave": true,
 	"StartServer": true, "StopServer": true, "KillServer": true, "UpdateServerSettings": true,
+	"ModPortalListAllMods": true, "ModPortalGetModInfo": true, "ModPortalLoginStatus": true,
 	"ModPortalInstallMod": true, "ModPortalLogin": true, "ModPortalLogout": true, "ModPortalInstallMultiple": true,
-	"ToggleMod": true, "DeleteMod": true, "DeleteAllMods": true, "UpdateMod": true, "UploadMod": true,
+	"ListInstalledMods": true, "ToggleMod": true, "DeleteMod": true, "DeleteAllMods": true, "UpdateMod": true, "UploadMod": true, "DownloadMods": true,
+	"ModPacksList": true, "ModPackDownload": true, "ModPackListMods": true,
 	"ModPackCreate": true, "ModPackDelete": true, "LoadModPack": true,
 	"ModPackToggleMod": true, "ModPackDeleteMod": true, "ModPackDeleteAllMod": true,
 	"ModPackUpdateMod": true, "ModPackUploadMod": true, "ModPackModPortalInstallMod": true,
@@ -231,6 +236,12 @@ var apiRoutes = Routes{
 		"GET",
 		"/server/status",
 		CheckServer,
+		false,
+	}, {
+		"SystemMetrics",
+		"GET",
+		"/system/metrics",
+		SystemMetrics,
 		false,
 	}, {
 		"FactorioVersion",

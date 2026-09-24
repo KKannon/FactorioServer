@@ -1,6 +1,7 @@
 import Panel from "../components/Panel";
 import React, {useEffect, useState} from "react";
 import settingsResource from "../../api/resources/settings";
+import {t} from "../../identity/preferences";
 
 const GameSettings = () => {
 
@@ -18,9 +19,10 @@ const GameSettings = () => {
     return (
         <Panel
             className="mb-4"
-            title="Game Settings"
+            title={t('nav.gameSettings')}
             content={
                 <>
+                    {settingsCategories && Object.keys(settingsCategories).length === 0 && <p>{t('empty')}</p>}
                     {settingsCategories && Object.keys(settingsCategories).map(key => {
                         const settings = settingsCategories[key];
                         return (

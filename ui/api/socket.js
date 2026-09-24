@@ -1,100 +1,59 @@
 import EventEmitter from "events";
 
 const bus = new EventEmitter();
+const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+const subscriptions = new Set();
+let socket = null;
+let reconnectTimer = null;
 
-const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
+const sendControl = (type, value) => {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return false;
+    socket.send(JSON.stringify({room_name: "", controls: {type, value}}));
+    return true;
+};
+
+bus.on('log subscribe', () => {
+    subscriptions.add('gamelog');
+    sendControl('subscribe', 'gamelog');
+});
+bus.on('log unsubscribe', () => {
+    subscriptions.delete('gamelog');
+    sendControl('unsubscribe', 'gamelog');
+});
+bus.on('server status subscribe', () => {
+    subscriptions.add('server_status');
+    sendControl('subscribe', 'server_status');
+});
+bus.on('server status unsubscribe', () => {
+    subscriptions.delete('server_status');
+    sendControl('unsubscribe', 'server_status');
+});
+bus.on('command send', command => {
+    if (!sendControl('command', command)) window.flash?.('Console disconnected. Try again.', 'red');
+});
 
 function connect() {
-    const socket = new WebSocket(ws_scheme + "://" + window.location.host + "/ws");
+    clearTimeout(reconnectTimer);
+    socket = new WebSocket(`${wsScheme}://${window.location.host}/ws`);
 
-    function logSubscribeEvent() {
-        socket.send(
-            JSON.stringify(
-                {
-                    room_name: "",
-                    controls: {
-                        type: "subscribe",
-                        value: "gamelog"
-                    }
-                }
-            )
-        );
-    }
-
-    function logUnsubscribeEvent() {
-        socket.send(
-            JSON.stringify(
-                {
-                    room_name: "",
-                    controls: {
-                        type: "unsubscribe",
-                        value: "gamelog"
-                    }
-                }
-            )
-        );
-    }
-
-    function serverStatusSubscribeEvent() {
-        socket.send(
-            JSON.stringify(
-                {
-                    room_name: "",
-                    controls: {
-                        type: "subscribe",
-                        value: "server_status"
-                    }
-                }
-            )
-        );
-    }
-
-    function commandSendEvent(command) {
-        socket.send(
-            JSON.stringify(
-                {
-                    room_name: "",
-                    controls: {
-                        type: "command",
-                        value: command
-                    }
-                }
-            )
-        );
-    }
-
-    function registerEventEmitter() {
-        bus.on('log subscribe', logSubscribeEvent);
-        bus.on('log unsubscribe', logUnsubscribeEvent);
-        bus.on('server status subscribe', serverStatusSubscribeEvent);
-        bus.on('command send', commandSendEvent);
-    }
-
-    function unregisterEventEmitter() {
-        bus.off('log subscribe', logSubscribeEvent);
-        bus.off('log unsubscribe', logUnsubscribeEvent);
-        bus.off('server status subscribe', serverStatusSubscribeEvent);
-        bus.off('command send', commandSendEvent);
-    }
-
-    socket.onmessage = e => {
-        const {room_name, message} = JSON.parse(e.data);
-        bus.emit(room_name, message);
-    }
-
-    socket.onerror = e => {
-        socket.close();
-    }
-
-    socket.onclose = e => {
-        unregisterEventEmitter()
-        // reconnect after 5 seconds
-        setTimeout(connect, 5000);
-    }
-
-    socket.onopen = e => {
-        registerEventEmitter(socket)
-    }
+    socket.onmessage = event => {
+        try {
+            const {room_name: roomName, message} = JSON.parse(event.data);
+            bus.emit(roomName, message);
+        } catch (error) {
+            console.error('Invalid websocket message', error);
+        }
+    };
+    socket.onopen = () => {
+        subscriptions.forEach(room => sendControl('subscribe', room));
+        bus.emit('connection', true);
+    };
+    socket.onerror = () => socket.close();
+    socket.onclose = () => {
+        socket = null;
+        bus.emit('connection', false);
+        reconnectTimer = setTimeout(connect, 5000);
+    };
 }
 
 connect();

@@ -13,14 +13,14 @@ const Layout = ({identity, handleLogout, serverStatus}) => {
 
     const Status = ({info}) => {
 
-        let text = 'Unknown';
+        let text = t('unknown');
         let color = 'gray-light';
 
         if (info && info.running) {
-            text = 'Running';
+            text = t('running');
             color = 'green';
         } else if (info && !info.running) {
-            text = 'Stopped';
+            text = t('stopped');
             color = 'red';
         }
 
@@ -69,19 +69,21 @@ const Layout = ({identity, handleLogout, serverStatus}) => {
                     <div className="py-4 px-2 accentuated">
                         <h1 className="text-dirty-white text-lg mb-2 mx-4">{t('management')}</h1>
                         <div className="text-white text-center rounded-sm bg-black shadow-inner mx-4 p-1">
-                            <Link to="/">Controls</Link>
-                            <Link to="/saves">Saves</Link>
-                            <Link to="/mods">Mods</Link>
-                            <Link to="/server-settings">Server Settings</Link>
-                            <Link to="/game-settings">Game Settings</Link>
-                            <Link to="/console">Console</Link>
-                            <Link to="/logs" last={true}>Logs</Link>
+                            <Link to="/">{t('nav.controls')}</Link>
+                            <Link to="/saves" last={!identity?.can_manage}>{t('nav.saves')}</Link>
+                            {identity?.can_manage && <>
+                                <Link to="/mods">{t('nav.mods')}</Link>
+                                <Link to="/server-settings">{t('nav.serverSettings')}</Link>
+                                <Link to="/game-settings">{t('nav.gameSettings')}</Link>
+                                <Link to="/console">{t('nav.console')}</Link>
+                                <Link to="/logs" last={true}>{t('nav.logs')}</Link>
+                            </>}
                         </div>
                     </div>
                     <div className="py-4 px-2 accentuated">
                         <h1 className="text-dirty-white text-lg mb-2 mx-4">{t('administration')}</h1>
                         <div className="text-white text-center rounded-sm bg-black shadow-inner mx-4 p-1">
-                            <Link to="/help" last={true}>Help</Link>
+                            <Link to="/help" last={true}>{t('nav.help')}</Link>
                         </div>
                     </div>
                     <div className="py-4 px-2 accentuated">

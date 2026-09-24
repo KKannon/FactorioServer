@@ -206,6 +206,11 @@ func NewFactorioServer() (err error) {
 			server.Settings["admins"] = jsonData
 		}
 	}
+	if _, err = os.Stat(config.FactorioWhitelistFile); os.IsNotExist(err) {
+		if err = ioutil.WriteFile(config.FactorioWhitelistFile, []byte("[]"), 0664); err != nil {
+			return err
+		}
+	}
 
 	SetFactorioServer(server)
 
@@ -259,6 +264,9 @@ func (server *Server) Run() error {
 	if (server.Version.Greater(Version{0, 17, 0})) {
 		args = append(args, "--server-adminlist", config.FactorioAdminFile)
 	}
+	args = append(args,
+		"--use-server-whitelist=true",
+		"--server-whitelist", config.FactorioWhitelistFile)
 
 	if strings.HasPrefix(server.Savefile, "Load Latest") {
 		args = append(args, "--start-server-load-latest")

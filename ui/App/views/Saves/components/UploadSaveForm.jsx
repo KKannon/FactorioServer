@@ -3,11 +3,12 @@ import React, {useState} from "react";
 import {useForm} from "react-hook-form";
 import saves from "../../../../api/resources/saves";
 import Error from "../../../components/Error";
+import {t} from "../../../../identity/preferences";
 
 
 const UploadSaveForm = ({onSuccess}) => {
     const {register, handleSubmit, formState: {errors}} = useForm();
-    const [fileName, setFileName] = useState('Select File ...');
+    const [fileName, setFileName] = useState(t('saves.select'));
 
     const onSubmit = (data, e) => {
         saves.upload(data.savefile[0]).then(_ => {
@@ -20,7 +21,7 @@ const UploadSaveForm = ({onSuccess}) => {
         <form onSubmit={handleSubmit(onSubmit)}>
             <div className="mb-6">
                 <label className="block text-white text-sm font-bold mb-2" htmlFor="password">
-                    Save File
+                    {t('saves.upload')}
                 </label>
                 <div className="relative bg-white shadow text-black w-full">
                     <input
@@ -32,7 +33,7 @@ const UploadSaveForm = ({onSuccess}) => {
                 </div>
                 <Error error={errors.savefile} message="Savefile is required"/>
             </div>
-            <Button type="success" isSubmit={true}>Upload</Button>
+            <Button type="success" isSubmit={true}>{t('saves.uploadAction')}</Button>
         </form>
     )
 }

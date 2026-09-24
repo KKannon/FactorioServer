@@ -12,6 +12,7 @@ import Fuse from "fuse.js";
 import CreateModPack from "./components/CreateModPack";
 import ModPack from "./components/ModPack";
 import ModList from "./components/ModList";
+import {t} from "../../../identity/preferences";
 
 const Mods = ({serverStatus}) => {
 
@@ -111,25 +112,25 @@ const Mods = ({serverStatus}) => {
                 <Panel className="mb-6"
                        content={
                            <div className="text-red font-bold text-xl">
-                               Changing mods is disabled while the server is running!
+                               {t('mods.running')}
                            </div>
                        }
                 />
                 :
                 <TabControl>
-                    <Tab title="Install Mod">
+                    <Tab title={t('mods.install')}>
                         <AddMod refetchInstalledMods={fetchInstalledMods} fuse={fuse}/>
                     </Tab>
-                    <Tab title="Upload Mod">
+                    <Tab title={t('mods.upload')}>
                         <UploadMod refetchInstalledMods={fetchInstalledMods}/>
                     </Tab>
-                    <Tab title="Load Mods from Save">
+                    <Tab title={t('mods.loadSave')}>
                         <LoadMods refreshMods={fetchInstalledMods}/>
                     </Tab>
                 </TabControl>
             }
             <Panel
-                title="Mods"
+                title={t('mods.title')}
                 className="mb-6"
                 content={
                     <ModList addUpdatableMod={addUpdatableMod}
@@ -157,7 +158,7 @@ const Mods = ({serverStatus}) => {
             />
 
             <Panel
-                title="Mod packs"
+                title={t('mods.packs')}
                 className="mb-6"
                 content={
                     modPacks.map(

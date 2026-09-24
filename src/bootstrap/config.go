@@ -47,6 +47,7 @@ type Config struct {
 	FactorioCredentialsFile string `json:"factorio_credentials_file,omitempty"`
 	FactorioIP              string `json:"factorio_ip,omitempty"`
 	FactorioAdminFile       string `json:"factorio_admin_file,omitempty"`
+	FactorioWhitelistFile   string `json:"factorio_whitelist_file,omitempty"`
 	ServerIP                string `json:"server_ip,omitempty"`
 	ServerPort              string `json:"server_port,omitempty"`
 	MaxUploadSize           int64  `json:"max_upload_size,omitempty"`
@@ -189,6 +190,9 @@ func (config *Config) loadServerConfig() {
 	if !filepath.IsAbs(config.FactorioAdminFile) {
 		config.FactorioAdminFile = filepath.Join(config.FactorioConfigDir, config.FactorioAdminFile)
 	}
+	if !filepath.IsAbs(config.FactorioWhitelistFile) {
+		config.FactorioWhitelistFile = filepath.Join(config.FactorioConfigDir, config.FactorioWhitelistFile)
+	}
 
 	if config.FactorioRconPort == 0 {
 		config.FactorioRconPort = randomPort()
@@ -221,6 +225,7 @@ func (config *Config) mapFlags(flags Flags) {
 	config.FactorioConfigFile = filepath.Join(flags.FactorioDir, flags.FactorioConfigFile)
 	config.FactorioCredentialsFile = "./factorio.auth"
 	config.FactorioAdminFile = "server-adminlist.json"
+	config.FactorioWhitelistFile = "server-whitelist.json"
 	config.ConsoleLogFile = filepath.Join(flags.FactorioDir, "factorio-server-console.log")
 	config.FactorioRconPort = flags.FactorioRconPort
 

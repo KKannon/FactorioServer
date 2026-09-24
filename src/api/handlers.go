@@ -263,6 +263,10 @@ func LoadConfig(w http.ResponseWriter, r *http.Request) {
 	config := bootstrap.GetConfig()
 	configContents, err := factorio.LoadConfig(config.FactorioConfigFile)
 	if err != nil {
+		if os.IsNotExist(err) {
+			resp = map[string]map[string]string{}
+			return
+		}
 		resp = fmt.Sprintf("Could not retrieve config.ini: %s", err)
 		log.Println(resp)
 		w.WriteHeader(http.StatusInternalServerError)

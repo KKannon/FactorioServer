@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/OpenFactorioServerManager/factorio-server-manager/bootstrap"
+	"github.com/OpenFactorioServerManager/factorio-server-manager/factorio"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/glebarez/sqlite"
 	"golang.org/x/oauth2"
@@ -143,7 +144,7 @@ func newAuth(config OIDCConfig, db *gorm.DB, aead cipher.AEAD, secure bool) Auth
 		cookieName = "__Host-fsm_session"
 	}
 	managementRoles := make(map[string]struct{})
-	for _, role := range strings.Split(envOrDefault("STUPID_AUTHENTICATOR_MANAGEMENT_ROLES", "admin,owner,operator"), ",") {
+	for _, role := range strings.Split(envOrDefault("STUPID_AUTHENTICATOR_MANAGEMENT_ROLES", "admin,adm,manager,support,owner,operator"), ",") {
 		if role = strings.TrimSpace(role); role != "" {
 			managementRoles[role] = struct{}{}
 		}
@@ -151,6 +152,17 @@ func newAuth(config OIDCConfig, db *gorm.DB, aead cipher.AEAD, secure bool) Auth
 	return Auth{config: config, db: db, oauth: oauthConfig,
 		verifier:   oidc.NewVerifier(config.Issuer, oidc.NewRemoteKeySet(context.Background(), config.JWKSURL), &oidc.Config{ClientID: config.ClientID}),
 		httpClient: &http.Client{Timeout: 15 * time.Second}, cipher: aead, cookieName: cookieName, cookieSecure: secure, managementRoles: managementRoles}
+}
+
+func (a *Auth) prepareUser(user AuthUser) AuthUser {
+	_, user.CanManage = a.managementRoles[user.Role]
+	user.GameUsername = user.FactorioUsername()
+	if user.GameUsername != "" {
+		if err := factorio.EnsurePlayerAccess(user.GameUsername, user.CanManage); err != nil {
+			log.Printf("could not synchronize Factorio access for user %s: %v", user.PublicUserID, err)
+		}
+	}
+	return user
 }
 
 func randomURLSafe(size int) (string, error) {
@@ -440,6 +452,7 @@ func OIDCCallback(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login?error=userinfo", http.StatusSeeOther)
 		return
 	}
+	user = auth.prepareUser(user)
 	if err := auth.saveSession(w, token, rawIDToken, user); err != nil {
 		http.Error(w, "Unable to create session", http.StatusInternalServerError)
 		return
@@ -465,6 +478,7 @@ func CurrentUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+	user = auth.prepareUser(user)
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	w.Header().Set("Cache-Control", "no-store")
 	json.NewEncoder(w).Encode(user)
@@ -482,6 +496,7 @@ func RefreshCurrentUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Session expired", http.StatusUnauthorized)
 		return
 	}
+	user = auth.prepareUser(user)
 	if cookie, cookieErr := r.Cookie(auth.cookieName); cookieErr == nil {
 		auth.setSessionCookie(w, cookie.Value)
 	}

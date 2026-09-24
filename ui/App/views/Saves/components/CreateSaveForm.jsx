@@ -5,6 +5,7 @@ import saves from "../../../../api/resources/saves";
 import Label from "../../../components/Label";
 import Input from "../../../components/Input";
 import Error from "../../../components/Error";
+import {t} from "../../../../identity/preferences";
 
 const CreateSaveForm = ({onSuccess}) => {
     const {register, handleSubmit, formState: {errors}} = useForm();
@@ -23,11 +24,11 @@ const CreateSaveForm = ({onSuccess}) => {
     return (
         <form onSubmit={handleSubmit(onSubmit)}>
             <div className="mb-6">
-                <Label text="Savefile Name" htmlFor="savefile"/>
+                <Label text={t('saves.filename')} htmlFor="savefile"/>
                 <Input register={register('savefile', {required: true})}/>
                 <Error error={errors.savefile} message="Savefile Name is required"/>
             </div>
-            <Button type="success" isLoading={isLoading} isSubmit={true}>Create Save</Button>
+            <Button type="success" isLoading={isLoading} isSubmit={true}>{t('saves.createAction')}</Button>
         </form>
     )
 }

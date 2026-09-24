@@ -6,8 +6,9 @@ import UploadSaveForm from "./components/UploadSaveForm";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faDownload, faTrashAlt} from "@fortawesome/free-solid-svg-icons";
 import {formatDateTime} from "../../../identity/preferences";
+import {t} from "../../../identity/preferences";
 
-const Saves = ({serverStatus}) => {
+const Saves = ({serverStatus, canManage}) => {
 
     const [saves, setSaves] = useState([]);
 
@@ -34,38 +35,37 @@ const Saves = ({serverStatus}) => {
 
     return (
         <>
-            <div className="lg:flex mb-6">
+            {canManage && <div className="lg:flex mb-6">
                 <Panel
-                    title="Create Save"
+                    title={t('saves.create')}
                     className="lg:w-1/2 lg:mr-3 mb-6 lg:mb-0"
                     content={
                         serverStatus.running
                             ? <p className="text-red-light pt-4 pb-24">
-                                Create a new Save is only possible if the Factorio server is
-                                not running.
+                                {t('saves.serverRunning')}
                             </p>
                             : <CreateSaveForm onSuccess={updateList}/>
                     }
                 />
                 <Panel
-                    title="Upload Save"
+                    title={t('saves.upload')}
                     className="lg:w-1/2 lg:ml-3"
                     content={<UploadSaveForm onSuccess={updateList}/>}
                 />
-            </div>
+            </div>}
 
             <Panel
                 className="mb-4"
-                title="Saves"
+                title={t('saves.list')}
                 content={
                     <div className="overflow-x-auto w-full">
                         <table className="w-full">
                             <thead>
                             <tr className="text-left py-1">
-                                <th>Name</th>
-                                <th>Last Modified At</th>
-                                <th>Size</th>
-                                <th>Actions</th>
+                                <th>{t('saves.name')}</th>
+                                <th>{t('saves.modified')}</th>
+                                <th>{t('saves.size')}</th>
+                                <th>{t('saves.actions')}</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -80,8 +80,9 @@ const Saves = ({serverStatus}) => {
                                                 className="text-gray-light cursor-pointer hover:text-orange"
                                                 icon={faDownload}/>
                                         </a>
-                                        <FontAwesomeIcon className="text-red cursor-pointer hover:text-red-light mr-2"
+                                        {canManage && <FontAwesomeIcon className="text-red cursor-pointer hover:text-red-light mr-2"
                                                          onClick={() => deleteSave(save)} icon={faTrashAlt}/>
+                                        }
                                     </td>
                                 </tr>
                             )}

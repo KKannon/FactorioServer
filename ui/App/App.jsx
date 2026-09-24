@@ -9,9 +9,9 @@ import Saves from "./views/Saves/Saves";
 import Layout from "./components/Layout";
 import server from "../api/resources/server";
 import Mods from "./views/Mods/Mods";
-import ServerSettings from "./views/ServerSettings";
+import ServerSettings from "./views/ServerSettingsModern";
 import GameSettings from "./views/GameSettings";
-import Console from "./views/Console";
+import Console from "./views/ConsoleModern";
 import Help from "./views/Help";
 import socket from "../api/socket";
 import {applyPreferences, t} from "../identity/preferences";
@@ -53,9 +53,11 @@ const App = () => {
         }
 
         let active = true;
+        let hasLoadedStatus = false;
         const acceptServerStatus = value => {
             if (!value || typeof value !== 'object') throw new Error('Invalid server status response');
             if (!active) return;
+            hasLoadedStatus = true;
             setServerStatus(value);
             setServerStatusError(null);
             setServerStatusLoading(false);
@@ -65,20 +67,24 @@ const App = () => {
             catch (error) { console.error('Invalid server status event', error); }
         };
 
-        setServerStatusLoading(true);
-        setServerStatusError(null);
-        server.status()
+        const loadStatus = () => server.status()
             .then(acceptServerStatus)
             .catch(() => {
                 if (!active) return;
-                setServerStatusError('Could not load the Factorio server status.');
+                if (!hasLoadedStatus) setServerStatusError(t('status.loadError'));
                 setServerStatusLoading(false);
             });
+        setServerStatusLoading(true);
+        setServerStatusError(null);
+        loadStatus();
+        const statusTimer = setInterval(loadStatus, 30000);
         socket.emit('server status subscribe');
         socket.on('server_status', onStatus);
         return () => {
             active = false;
+            clearInterval(statusTimer);
             socket.off('server_status', onStatus);
+            socket.emit('server status unsubscribe');
         };
     }, [identity?.public_user_id, serverStatusRequest]);
 
@@ -93,7 +99,17 @@ const App = () => {
         return () => document.removeEventListener('visibilitychange', onVisible);
     }, [identity, lastProfileSync, acceptIdentity]);
 
+    useEffect(() => {
+        const onUnauthorized = () => {
+            setIdentity(null);
+            setServerStatus(null);
+        };
+        window.addEventListener('fsm:unauthorized', onUnauthorized);
+        return () => window.removeEventListener('fsm:unauthorized', onUnauthorized);
+    }, []);
+
     const ProtectedRoute = () => identity ? <Outlet/> : <Navigate to="/login" state={{from: window.location.pathname}}/>;
+    const ManagementRoute = () => identity?.can_manage ? <Outlet/> : <Navigate to="/" replace/>;
     if (loading) return <div className="identity-loading">{t('loading')}</div>;
 
     return <BrowserRouter><Routes>
@@ -106,13 +122,15 @@ const App = () => {
                     error={serverStatusError}
                     onRetry={() => setServerStatusRequest(value => value + 1)}
                 />}>
-                    <Route index element={<Controls serverStatus={serverStatus}/>}/>
-                    <Route path="saves" element={<Saves serverStatus={serverStatus}/>}/>
-                    <Route path="mods" element={<Mods serverStatus={serverStatus}/>}/>
-                    <Route path="server-settings" element={<ServerSettings serverStatus={serverStatus}/>}/>
-                    <Route path="game-settings" element={<GameSettings serverStatus={serverStatus}/>}/>
-                    <Route path="console" element={<Console serverStatus={serverStatus}/>}/>
-                    <Route path="logs" element={<Logs serverStatus={serverStatus}/>}/>
+                    <Route index element={<Controls identity={identity} serverStatus={serverStatus}/>}/>
+                    <Route path="saves" element={<Saves canManage={identity?.can_manage} serverStatus={serverStatus}/>}/>
+                    <Route element={<ManagementRoute/>}>
+                        <Route path="mods" element={<Mods serverStatus={serverStatus}/>}/>
+                        <Route path="server-settings" element={<ServerSettings serverStatus={serverStatus}/>}/>
+                        <Route path="game-settings" element={<GameSettings serverStatus={serverStatus}/>}/>
+                        <Route path="console" element={<Console canManage={identity?.can_manage} serverStatus={serverStatus}/>}/>
+                        <Route path="logs" element={<Logs serverStatus={serverStatus}/>}/>
+                    </Route>
                     <Route path="help" element={<Help serverStatus={serverStatus}/>}/>
                 </Route>
             </Route>

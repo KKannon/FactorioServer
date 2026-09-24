@@ -85,11 +85,27 @@ type AuthUser struct {
 	GivenName    string            `json:"given_name"`
 	FamilyName   string            `json:"family_name"`
 	Picture      string            `json:"picture,omitempty"`
+	Username     string            `json:"username,omitempty"`
+	PreferredUsername string       `json:"preferred_username,omitempty"`
+	GameUsername string            `json:"game_username,omitempty"`
+	CanManage   bool               `json:"can_manage"`
 	OriginApp    string            `json:"origin_app"`
 	Apps         []string          `json:"apps"`
 	Role         string            `json:"role"`
 	Roles        map[string]string `json:"roles"`
 	Preferences  UserPreferences   `json:"preferences"`
+}
+
+func (u AuthUser) FactorioUsername() string {
+	for _, candidate := range []string{u.GameUsername, u.PreferredUsername, u.Username} {
+		if value := strings.TrimSpace(candidate); value != "" {
+			return value
+		}
+	}
+	if local, _, ok := strings.Cut(u.Email, "@"); ok {
+		return local
+	}
+	return ""
 }
 
 func (u AuthUser) Validate(appSlug string) error {

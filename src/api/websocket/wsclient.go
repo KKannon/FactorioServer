@@ -39,6 +39,9 @@ type wsClient struct {
 
 	// channel to send messages to the websocket connection.
 	send chan wsMessage
+
+	// Only management roles may execute commands or broadcast arbitrary data.
+	canControl bool
 }
 
 // read messages from the websocket connection, choose what has to be done with it and execute that action
@@ -85,15 +88,17 @@ func (client *wsClient) readPump() {
 					room := client.hub.GetRoom(message.Controls.Value)
 					room.unregister <- client
 				default:
-					for _, handler := range client.hub.controlHandlers {
-						go handler(message.Controls)
+					if client.canControl {
+						for _, handler := range client.hub.controlHandlers {
+							go handler(message.Controls)
+						}
 					}
-				}
-			} else {
+			}
+			} else if client.canControl {
 				client.hub.broadcast <- message
 			}
-		} else {
-			// Send the message to the defined room
+		} else if client.canControl {
+			// Only management clients may publish messages into rooms.
 			room := client.hub.GetRoom(message.RoomName)
 			room.send <- message
 		}
@@ -147,7 +152,7 @@ func (client *wsClient) writePump() {
 
 // serveWs is the http handler to upgrade from http to ws..
 // Also the startup point for a client
-func ServeWs(w http.ResponseWriter, r *http.Request) {
+func ServeWs(w http.ResponseWriter, r *http.Request, canControl bool) {
 	// upgrade the connection
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -160,6 +165,7 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 		hub:  WebsocketHub,
 		conn: conn,
 		send: make(chan wsMessage, 256),
+		canControl: canControl,
 	}
 
 	// register this client in the hub
