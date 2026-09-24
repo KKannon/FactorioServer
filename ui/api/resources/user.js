@@ -2,31 +2,13 @@ import client from "../client";
 
 export default {
     status: async () => {
-        const response = await client.get('/api/user/status');
+        try { return (await client.get('/api/user/status')).data; }
+        catch (error) { if (error.response?.status === 401) return null; throw error; }
+    },
+    refresh: async () => {
+        const response = await client.post('/api/user/refresh');
         return response.data;
     },
-    login: async data => {
-        const response = await client.post('/api/login', data);
-        return response.data;
-    },
-    logout: async () => {
-        const response = await client.get('/api/logout');
-        return response.data;
-    },
-    list: async () => {
-        const response = await client.get('/api/user/list');
-        return response.data;
-    },
-    add: async (user) => {
-        const response = await client.post('/api/user/add', user);
-        return response.data;
-    },
-    delete: async (username) => {
-        const response = await client.post('/api/user/remove', JSON.stringify({username}));
-        return response.data;
-    },
-    changePassword: async data => {
-        const response = await client.post('/api/user/password', data).catch(err => window.flash(err.response.data, "red"));
-        return response.data;
-    }
+    loginURL: returnPath => `/auth/login?return=${encodeURIComponent(returnPath || '/')}`,
+    logout: () => window.location.assign('/auth/logout'),
 }

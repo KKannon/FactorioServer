@@ -4,8 +4,10 @@ import Button from "./Button";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faBars} from "@fortawesome/free-solid-svg-icons";
 import {Flash} from "./Flash";
+import Avatar from "./Avatar";
+import {t} from "../../identity/preferences";
 
-const Layout = ({handleLogout, serverStatus}) => {
+const Layout = ({identity, handleLogout, serverStatus}) => {
 
     const [isNavCollapsed, setIsNavCollapsed] = useState(true);
 
@@ -59,13 +61,13 @@ const Layout = ({handleLogout, serverStatus}) => {
                 </div>
                 <div className={isNavCollapsed ? "hidden md:block" : "block"}>
                     <div className="py-4 px-2 accentuated">
-                        <h1 className="text-dirty-white text-lg mb-2 mx-4">Server Status</h1>
+                        <h1 className="text-dirty-white text-lg mb-2 mx-4">{t('status')}</h1>
                         <div className="mx-4 mb-4 text-center">
                             <Status info={serverStatus}/>
                         </div>
                     </div>
                     <div className="py-4 px-2 accentuated">
-                        <h1 className="text-dirty-white text-lg mb-2 mx-4">Server Management</h1>
+                        <h1 className="text-dirty-white text-lg mb-2 mx-4">{t('management')}</h1>
                         <div className="text-white text-center rounded-sm bg-black shadow-inner mx-4 p-1">
                             <Link to="/">Controls</Link>
                             <Link to="/saves">Saves</Link>
@@ -77,15 +79,18 @@ const Layout = ({handleLogout, serverStatus}) => {
                         </div>
                     </div>
                     <div className="py-4 px-2 accentuated">
-                        <h1 className="text-dirty-white text-lg mb-2 mx-4">FSM Administration</h1>
+                        <h1 className="text-dirty-white text-lg mb-2 mx-4">{t('administration')}</h1>
                         <div className="text-white text-center rounded-sm bg-black shadow-inner mx-4 p-1">
-                            <Link to="/user-management">Users</Link>
                             <Link to="/help" last={true}>Help</Link>
                         </div>
                     </div>
                     <div className="py-4 px-2 accentuated">
+                        <div className="identity-summary mx-4 mb-3">
+                            <Avatar user={identity}/>
+                            <div className="identity-copy"><strong>{identity?.name || identity?.email}</strong><small>{identity?.role}</small></div>
+                        </div>
                         <div className="text-white text-center rounded-sm bg-black shadow-inner mx-4 p-1">
-                            <Button type="danger" className="w-full" onClick={handleLogout}>Logout</Button>
+                            <Button type="danger" className="w-full" onClick={handleLogout}>{t('logout')}</Button>
                         </div>
                     </div>
                     <div className="accentuated-t accentuated-x md:block hidden"/>

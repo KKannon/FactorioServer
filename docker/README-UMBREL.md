@@ -15,6 +15,26 @@ git pull --ff-only origin develop
 docker compose -f compose.umbrel.yaml up -d --build
 ```
 
+Before the first OIDC-enabled deploy, create `.env` beside the compose file and
+set the confidential client secret (never commit this file):
+
+```bash
+cp .env.example .env
+# Edit only .env and replace CLIENT_SECRET_PROVIDED_SEPARATELY.
+```
+
+The production callback is exactly
+`https://factorio.stupidll.com/auth/callback`. The Cloudflare origin remains
+`http://umbrel.local:3101`; TLS terminates at Cloudflare, while the browser sees
+HTTPS and therefore accepts the Secure session cookie.
+
+Authentication uses Authorization Code + PKCE S256. OIDC access, refresh, and
+ID tokens are encrypted in the persistent SQLite database and are never sent to
+the browser. Logout removes the local session before redirecting to the provider.
+Users linked to the app can read status and configuration. Only roles listed in
+`STUPID_AUTHENTICATOR_MANAGEMENT_ROLES` may change saves, mods, settings, or the
+running server; the default is `admin,owner,operator`.
+
 The panel listens on TCP port `3101` by default and Factorio listens on UDP port
 `34197`. These can be overridden with `PANEL_PORT`, `PANEL_BIND_ADDRESS`, and
 `FACTORIO_PORT`. Because data is bind-mounted from the sibling `data` directory,

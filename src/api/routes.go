@@ -33,6 +33,7 @@ func ServerOffMiddleware(next http.Handler) http.Handler {
 
 func NewRouter() *mux.Router {
 	mainRouter := mux.NewRouter().StrictSlash(true)
+	mainRouter.Use(SecurityHeadersMiddleware)
 
 	// create subrouter for authenticated calls
 	subRouter := mainRouter.NewRoute().Subrouter()
@@ -55,17 +56,19 @@ func NewRouter() *mux.Router {
 		} else {
 			router = apiRouter
 		}
+		var handler http.Handler = route.HandlerFunc
+		if managementRoutes[route.Name] {
+			handler = RequireManagementRole(handler)
+		}
 		router.Methods(route.Method).
 			Path(route.Pattern).
 			Name(route.Name).
-			Handler(route.HandlerFunc)
+			Handler(handler)
 	}
 
-	// The login handler does not check for authentication.
-	mainRouter.Path("/api/login").
-		Methods("POST").
-		Name("LoginUser").
-		HandlerFunc(LoginUser)
+	mainRouter.Path("/auth/login").Methods("GET").Name("OIDCLogin").HandlerFunc(BeginOIDCLogin)
+	mainRouter.Path("/auth/callback").Methods("GET").Name("OIDCCallback").HandlerFunc(OIDCCallback)
+	mainRouter.Path("/auth/logout").Methods("GET").Name("OIDCLogout").HandlerFunc(OIDCLogout)
 
 	// Route for initializing websocket connection
 	// Clients connecting to /ws establish websocket connection by upgrading
@@ -114,10 +117,6 @@ func NewRouter() *mux.Router {
 		Methods("GET").
 		Name("Logs").
 		Handler(http.StripPrefix("/logs", http.FileServer(http.Dir("./app/"))))
-	subRouter.Path("/user-management").
-		Methods("GET").
-		Name("User management").
-		Handler(http.StripPrefix("/user-management", http.FileServer(http.Dir("./app/"))))
 	subRouter.Path("/help").
 		Methods("GET").
 		Name("Help").
@@ -130,6 +129,29 @@ func NewRouter() *mux.Router {
 		Handler(http.FileServer(http.Dir("./app/")))
 
 	return mainRouter
+}
+
+func SecurityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' ws: wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Read operations are available to every user linked to this app. Mutating or
+// credential-bearing operations additionally require a configured management role.
+var managementRoutes = map[string]bool{
+	"UploadSave": true, "RemoveSave": true, "CreateSave": true, "LoadModsFromSave": true,
+	"StartServer": true, "StopServer": true, "KillServer": true, "UpdateServerSettings": true,
+	"ModPortalInstallMod": true, "ModPortalLogin": true, "ModPortalLogout": true, "ModPortalInstallMultiple": true,
+	"ToggleMod": true, "DeleteMod": true, "DeleteAllMods": true, "UpdateMod": true, "UploadMod": true,
+	"ModPackCreate": true, "ModPackDelete": true, "LoadModPack": true,
+	"ModPackToggleMod": true, "ModPackDeleteMod": true, "ModPackDeleteAllMod": true,
+	"ModPackUpdateMod": true, "ModPackUploadMod": true, "ModPackModPortalInstallMod": true,
+	"ModPackModPortalInstallMultiple": true,
 }
 
 // Defines all API REST endpoints
@@ -214,40 +236,16 @@ var apiRoutes = Routes{
 		FactorioVersion,
 		false,
 	}, {
-		"LogoutUser",
-		"GET",
-		"/logout",
-		LogoutUser,
-		false,
-	}, {
 		"StatusUser",
 		"GET",
 		"/user/status",
-		GetCurrentLogin,
+		CurrentUser,
 		false,
 	}, {
-		"ListUsers",
-		"GET",
-		"/user/list",
-		ListUsers,
-		false,
-	}, {
-		"AddUser",
+		"RefreshUser",
 		"POST",
-		"/user/add",
-		AddUser,
-		false,
-	}, {
-		"RemoveUser",
-		"POST",
-		"/user/remove",
-		RemoveUser,
-		false,
-	}, {
-		"ChangePassword",
-		"POST",
-		"/user/password",
-		ChangePassword,
+		"/user/refresh",
+		RefreshCurrentUser,
 		false,
 	}, {
 		"GetServerSettings",

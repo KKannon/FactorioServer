@@ -1,6 +1,5 @@
-import React, {useCallback, useState} from 'react';
-
-import user from "../api/resources/user";
+import React, {useCallback, useEffect, useState} from 'react';
+import userResource from "../api/resources/user";
 import Login from "./views/Login";
 import {Navigate, Route, Routes} from "react-router";
 import Controls from "./views/Controls";
@@ -10,70 +9,75 @@ import Saves from "./views/Saves/Saves";
 import Layout from "./components/Layout";
 import server from "../api/resources/server";
 import Mods from "./views/Mods/Mods";
-import UserManagement from "./views/UserManagement/UserManagment";
 import ServerSettings from "./views/ServerSettings";
 import GameSettings from "./views/GameSettings";
 import Console from "./views/Console";
 import Help from "./views/Help";
 import socket from "../api/socket";
-import {Flash} from "./components/Flash";
-
+import {applyPreferences, t} from "../identity/preferences";
 
 const App = () => {
-
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [identity, setIdentity] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [serverStatus, setServerStatus] = useState(null);
+    const [lastProfileSync, setLastProfileSync] = useState(0);
 
-    const handleAuthenticationStatus = useCallback(async (status) => {
-        if (status?.username) {
-            setIsAuthenticated(true);
-
-            const status = await server.status();
-            setServerStatus(status);
-
-            socket.emit('server status subscribe');
-            socket.on('server_status', status => {
-                setServerStatus(JSON.parse(status));
-            });
-        }
-    },[]);
-
-    const handleLogout = useCallback(async () => {
-        const loggedOut = await user.logout();
-        if (loggedOut) {
-            setIsAuthenticated(false);
-        }
+    const acceptIdentity = useCallback(value => {
+        if (!value?.public_user_id) return;
+        applyPreferences(value.preferences);
+        setIdentity(value);
+        setLastProfileSync(Date.now());
     }, []);
 
-    const ProtectedRoute = ({isAuthenticated}) => {
-        if (!isAuthenticated) {
-            return <Navigate to="/login" state={{from: window.location.pathname}} />;
-        }
-        return <Outlet/>;
-    }
+    useEffect(() => {
+        (async () => {
+            try {
+                const current = await userResource.status();
+                if (current) acceptIdentity(current);
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, [acceptIdentity]);
 
-    return (
-        <BrowserRouter>
-            <Routes>
-                <Route path="login" element={<Login handleLogin={handleAuthenticationStatus}/>}/>
+    useEffect(() => {
+        if (!identity) return;
+        const onStatus = value => setServerStatus(JSON.parse(value));
+        server.status().then(setServerStatus);
+        socket.emit('server status subscribe');
+        socket.on('server_status', onStatus);
+        return () => socket.off('server_status', onStatus);
+    }, [identity?.public_user_id]);
 
-                {/* route with only `element` will cause the proper children to be place in `<Outlet/>` */}
-                <Route element={<ProtectedRoute isAuthenticated={isAuthenticated}/> }>
-                    <Route element={<Layout handleLogout={handleLogout} serverStatus={serverStatus} />}>
-                        <Route index element={<Controls serverStatus={serverStatus}/>}/>
-                        <Route path="saves" element={<Saves serverStatus={serverStatus}/>}/>
-                        <Route path="mods" element={<Mods serverStatus={serverStatus}/>}/>
-                        <Route path="server-settings" element={<ServerSettings serverStatus={serverStatus}/>}/>
-                        <Route path="game-settings" element={<GameSettings serverStatus={serverStatus}/>}/>
-                        <Route path="console" element={<Console serverStatus={serverStatus}/>}/>
-                        <Route path="logs" element={<Logs serverStatus={serverStatus}/>}/>
-                        <Route path="user-management" element={<UserManagement serverStatus={serverStatus}/>}/>
-                        <Route path="help" element={<Help serverStatus={serverStatus}/>}/>
-                    </Route>
-                </Route>
-            </Routes>
-        </BrowserRouter>
-    );
-}
+    useEffect(() => {
+        const onVisible = async () => {
+            if (document.visibilityState === 'visible' && identity && Date.now() - lastProfileSync > 15 * 60 * 1000) {
+                try { acceptIdentity(await userResource.refresh()); }
+                catch (error) { if (error.response?.status === 401) setIdentity(null); }
+            }
+        };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => document.removeEventListener('visibilitychange', onVisible);
+    }, [identity, lastProfileSync, acceptIdentity]);
+
+    const ProtectedRoute = () => identity ? <Outlet/> : <Navigate to="/login" state={{from: window.location.pathname}}/>;
+    if (loading) return <div className="identity-loading">{t('loading')}</div>;
+
+    return <BrowserRouter><Routes>
+        <Route path="login" element={<Login identity={identity}/>}/>
+        <Route element={<ProtectedRoute/>}>
+            <Route element={<Layout identity={identity} handleLogout={userResource.logout} serverStatus={serverStatus}/> }>
+                <Route index element={<Controls serverStatus={serverStatus}/>}/>
+                <Route path="saves" element={<Saves serverStatus={serverStatus}/>}/>
+                <Route path="mods" element={<Mods serverStatus={serverStatus}/>}/>
+                <Route path="server-settings" element={<ServerSettings serverStatus={serverStatus}/>}/>
+                <Route path="game-settings" element={<GameSettings serverStatus={serverStatus}/>}/>
+                <Route path="console" element={<Console serverStatus={serverStatus}/>}/>
+                <Route path="logs" element={<Logs serverStatus={serverStatus}/>}/>
+                <Route path="help" element={<Help serverStatus={serverStatus}/>}/>
+            </Route>
+        </Route>
+    </Routes></BrowserRouter>;
+};
 
 export default App;

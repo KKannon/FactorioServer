@@ -1,73 +1,30 @@
 import React, {useEffect} from 'react';
-import {useForm} from "react-hook-form";
 import user from "../../api/resources/user";
 import Button from "../components/Button";
-import {useLocation, useNavigate} from "react-router";
+import {useLocation, useNavigate, useSearchParams} from "react-router-dom";
 import Panel from "../components/Panel";
-import Input from "../components/Input";
-import Label from "../components/Label";
-import {Flash} from "../components/Flash";
-import Error from "../components/Error";
+import {t} from "../../identity/preferences";
 
-const Login = ({handleLogin}) => {
-    const {register, handleSubmit, formState: { errors }} = useForm();
+const errorMessages = {
+    access_denied: 'Acesso negado pelo provedor.',
+    invalid_state: 'A tentativa de login expirou. Tente novamente.',
+    invalid_nonce: 'A resposta de autenticação não pôde ser validada.',
+    provider: 'O provedor não concluiu o login.',
+};
+
+const Login = ({identity}) => {
     const navigate = useNavigate();
     const location = useLocation();
-
-    const onSubmit = async data => {
-        try {
-            const loginAttempt = await user.login(data)
-            if (loginAttempt?.username) {
-                await handleLogin(loginAttempt);
-                navigate('/');
-            }
-        } catch (e) {
-            console.log(e);
-            window.flash("Login failed. Username or Password wrong.", "red");
-            throw e;
-        }
-    };
-
-    // on mount check if user is authenticated
-    useEffect(() => {
-        (async () => {
-            const status = await user.status();
-            if (status?.username) {
-                await handleLogin(status);
-                navigate(location?.state?.from || '/');
-            }
-        })();
-    }, [])
-
-    return (
-        <div className="h-screen overflow-hidden flex items-center justify-center bg-black">
-            <Panel
-                title="Login"
-                content={
-                    <form onSubmit={handleSubmit(onSubmit)}>
-                        <div className="mb-4">
-                            <Label text="Username" htmlFor="username"/>
-                            <Input register={register('username', {required: true})} placeholder="Username"/>
-                            <Error error={errors.username} message="Username is required"/>
-                        </div>
-                        <div className="mb-6">
-                            <Label text="Password" htmlFor="password"/>
-                            <Input
-                                register={register('password',{required: true})}
-                                type="password"
-                                placeholder="******************"
-                            />
-                            <Error error={errors.password} message="Password is required"/>
-                        </div>
-                        <div className="text-center">
-                            <Button type="success" className="w-full" isSubmit={true}>Sign In</Button>
-                        </div>
-                    </form>
-                }
-            />
-            <Flash/>
-        </div>
-    );
+    const [params] = useSearchParams();
+    const requestedReturn = location.state?.from || params.get('return') || '/';
+    const returnPath = requestedReturn.startsWith('/') && !requestedReturn.startsWith('//') && !requestedReturn.includes('\\') ? requestedReturn : '/';
+    useEffect(() => { if (identity) navigate(returnPath, {replace: true}); }, [identity]);
+    return <div className="h-screen overflow-hidden flex items-center justify-center bg-black">
+        <Panel title="Factorio Server Manager" content={<div className="text-center">
+            {params.get('error') && <p className="text-red mb-4">{errorMessages[params.get('error')] || 'Não foi possível autenticar.'}</p>}
+            <Button type="success" className="w-full" onClick={() => window.location.assign(user.loginURL(returnPath))}>{t('login')}</Button>
+        </div>}/>
+    </div>;
 };
 
 export default Login;

@@ -5,6 +5,7 @@ import CreateSaveForm from "./components/CreateSaveForm";
 import UploadSaveForm from "./components/UploadSaveForm";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faDownload, faTrashAlt} from "@fortawesome/free-solid-svg-icons";
+import {formatDateTime} from "../../../identity/preferences";
 
 const Saves = ({serverStatus}) => {
 
@@ -71,7 +72,7 @@ const Saves = ({serverStatus}) => {
                             {saves.map(save =>
                                 <tr className="py-2 md:py-1" key={save.name}>
                                     <td className="pr-4">{save.name}</td>
-                                    <td className="pr-4">{(new Date(save.last_mod)).toLocaleString()}</td>
+                                    <td className="pr-4">{formatDateTime(save.last_mod)}</td>
                                     <td className="pr-4">{parseFloat(save.size / 1024 / 1024).toFixed(3)} MB</td>
                                     <td>
                                         <a href={`/api/saves/dl/${save.name}`} className="mr-2">
