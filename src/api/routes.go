@@ -153,7 +153,7 @@ var managementRoutes = map[string]bool{
 	"UploadSave": true, "RemoveSave": true, "CreateSave": true, "LoadModsFromSave": true,
 	"StartServer": true, "StopServer": true, "KillServer": true, "UpdateServerSettings": true,
 	"InstallFactorioVersion": true,
-	"ModPortalListAllMods": true, "ModPortalGetModInfo": true, "ModPortalLoginStatus": true,
+	"ModPortalListAllMods":   true, "ModPortalGetModInfo": true, "ModPortalLoginStatus": true,
 	"ModPortalInstallMod": true, "ModPortalLogin": true, "ModPortalLogout": true, "ModPortalInstallMultiple": true,
 	"ListInstalledMods": true, "ToggleMod": true, "DeleteMod": true, "DeleteAllMods": true, "UpdateMod": true, "UploadMod": true, "DownloadMods": true,
 	"ModPacksList": true, "ModPackDownload": true, "ModPackListMods": true,
