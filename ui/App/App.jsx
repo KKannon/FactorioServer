@@ -15,11 +15,15 @@ import Console from "./views/Console";
 import Help from "./views/Help";
 import socket from "../api/socket";
 import {applyPreferences, t} from "../identity/preferences";
+import ServerStatusGate from "./components/ServerStatusGate";
 
 const App = () => {
     const [identity, setIdentity] = useState(null);
     const [loading, setLoading] = useState(true);
     const [serverStatus, setServerStatus] = useState(null);
+    const [serverStatusLoading, setServerStatusLoading] = useState(false);
+    const [serverStatusError, setServerStatusError] = useState(null);
+    const [serverStatusRequest, setServerStatusRequest] = useState(0);
     const [lastProfileSync, setLastProfileSync] = useState(0);
 
     const acceptIdentity = useCallback(value => {
@@ -41,13 +45,42 @@ const App = () => {
     }, [acceptIdentity]);
 
     useEffect(() => {
-        if (!identity) return;
-        const onStatus = value => setServerStatus(JSON.parse(value));
-        server.status().then(setServerStatus);
+        if (!identity) {
+            setServerStatus(null);
+            setServerStatusLoading(false);
+            setServerStatusError(null);
+            return;
+        }
+
+        let active = true;
+        const acceptServerStatus = value => {
+            if (!value || typeof value !== 'object') throw new Error('Invalid server status response');
+            if (!active) return;
+            setServerStatus(value);
+            setServerStatusError(null);
+            setServerStatusLoading(false);
+        };
+        const onStatus = value => {
+            try { acceptServerStatus(JSON.parse(value)); }
+            catch (error) { console.error('Invalid server status event', error); }
+        };
+
+        setServerStatusLoading(true);
+        setServerStatusError(null);
+        server.status()
+            .then(acceptServerStatus)
+            .catch(() => {
+                if (!active) return;
+                setServerStatusError('Could not load the Factorio server status.');
+                setServerStatusLoading(false);
+            });
         socket.emit('server status subscribe');
         socket.on('server_status', onStatus);
-        return () => socket.off('server_status', onStatus);
-    }, [identity?.public_user_id]);
+        return () => {
+            active = false;
+            socket.off('server_status', onStatus);
+        };
+    }, [identity?.public_user_id, serverStatusRequest]);
 
     useEffect(() => {
         const onVisible = async () => {
@@ -67,14 +100,21 @@ const App = () => {
         <Route path="login" element={<Login identity={identity}/>}/>
         <Route element={<ProtectedRoute/>}>
             <Route element={<Layout identity={identity} handleLogout={userResource.logout} serverStatus={serverStatus}/> }>
-                <Route index element={<Controls serverStatus={serverStatus}/>}/>
-                <Route path="saves" element={<Saves serverStatus={serverStatus}/>}/>
-                <Route path="mods" element={<Mods serverStatus={serverStatus}/>}/>
-                <Route path="server-settings" element={<ServerSettings serverStatus={serverStatus}/>}/>
-                <Route path="game-settings" element={<GameSettings serverStatus={serverStatus}/>}/>
-                <Route path="console" element={<Console serverStatus={serverStatus}/>}/>
-                <Route path="logs" element={<Logs serverStatus={serverStatus}/>}/>
-                <Route path="help" element={<Help serverStatus={serverStatus}/>}/>
+                <Route element={<ServerStatusGate
+                    status={serverStatus}
+                    loading={serverStatusLoading}
+                    error={serverStatusError}
+                    onRetry={() => setServerStatusRequest(value => value + 1)}
+                />}>
+                    <Route index element={<Controls serverStatus={serverStatus}/>}/>
+                    <Route path="saves" element={<Saves serverStatus={serverStatus}/>}/>
+                    <Route path="mods" element={<Mods serverStatus={serverStatus}/>}/>
+                    <Route path="server-settings" element={<ServerSettings serverStatus={serverStatus}/>}/>
+                    <Route path="game-settings" element={<GameSettings serverStatus={serverStatus}/>}/>
+                    <Route path="console" element={<Console serverStatus={serverStatus}/>}/>
+                    <Route path="logs" element={<Logs serverStatus={serverStatus}/>}/>
+                    <Route path="help" element={<Help serverStatus={serverStatus}/>}/>
+                </Route>
             </Route>
         </Route>
     </Routes></BrowserRouter>;
