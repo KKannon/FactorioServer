@@ -25,12 +25,12 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl jq tar unzip xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /opt/fsm
-COPY conf.json.example ./conf.json
-COPY --from=frontend /build/app ./app
-COPY --from=backend /factorio-server-manager ./factorio-server-manager
+WORKDIR /opt
+COPY conf.json.example /opt/fsm/conf.json
+COPY --from=frontend /build/app /opt/fsm/app
+COPY --from=backend /factorio-server-manager /opt/fsm/factorio-server-manager
 COPY docker/entrypoint.sh /opt/entrypoint.sh
-RUN chmod +x /opt/entrypoint.sh ./factorio-server-manager
+RUN chmod +x /opt/entrypoint.sh /opt/fsm/factorio-server-manager
 
 VOLUME ["/opt/fsm-data", "/opt/factorio/saves", "/opt/factorio/mods", "/opt/factorio/config", "/opt/fsm/mod_packs"]
 
