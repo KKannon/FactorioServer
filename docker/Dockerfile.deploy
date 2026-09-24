@@ -1,0 +1,40 @@
+FROM node:20-alpine AS frontend
+
+WORKDIR /build
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY webpack.config.js tailwind.config.js ./
+COPY ui ./ui
+COPY app ./app
+RUN npm run build
+
+FROM golang:1.24-alpine AS backend
+
+WORKDIR /build/src
+COPY src/go.mod src/go.sum ./
+RUN go mod download
+COPY src ./
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /factorio-server-manager .
+
+FROM ubuntu:24.04
+
+ENV FACTORIO_VERSION=stable \
+    RCON_PASS=""
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl jq tar unzip xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/fsm
+COPY conf.json.example ./conf.json
+COPY --from=frontend /build/app ./app
+COPY --from=backend /factorio-server-manager ./factorio-server-manager
+COPY docker/entrypoint.sh /opt/entrypoint.sh
+RUN chmod +x /opt/entrypoint.sh ./factorio-server-manager
+
+VOLUME ["/opt/fsm-data", "/opt/factorio/saves", "/opt/factorio/mods", "/opt/factorio/config", "/opt/fsm/mod_packs"]
+
+EXPOSE 80/tcp 34197/udp
+
+ENTRYPOINT ["/opt/entrypoint.sh"]
+

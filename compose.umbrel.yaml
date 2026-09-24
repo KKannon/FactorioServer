@@ -1,0 +1,23 @@
+name: factorio-server
+
+services:
+  manager:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.deploy
+    image: factorio-server-manager:local
+    container_name: factorio-server-manager
+    restart: unless-stopped
+    environment:
+      FACTORIO_VERSION: ${FACTORIO_VERSION:-stable}
+      RCON_PASS: ${RCON_PASS:-}
+    ports:
+      - "${PANEL_BIND_ADDRESS:-0.0.0.0}:${PANEL_PORT:-3101}:80/tcp"
+      - "${FACTORIO_PORT:-34197}:34197/udp"
+    volumes:
+      - "${FACTORIO_DATA_DIR:-../data}/fsm:/opt/fsm-data"
+      - "${FACTORIO_DATA_DIR:-../data}/saves:/opt/factorio/saves"
+      - "${FACTORIO_DATA_DIR:-../data}/mods:/opt/factorio/mods"
+      - "${FACTORIO_DATA_DIR:-../data}/config:/opt/factorio/config"
+      - "${FACTORIO_DATA_DIR:-../data}/mod_packs:/opt/fsm/mod_packs"
+
