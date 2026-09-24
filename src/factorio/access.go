@@ -59,6 +59,30 @@ func addAccessEntry(path, username string) (bool, error) {
 	return true, os.WriteFile(path, data, 0664)
 }
 
+func removeAccessEntry(path, username string) (bool, error) {
+	values, err := readAccessList(path)
+	if err != nil {
+		return false, err
+	}
+	filtered := make([]string, 0, len(values))
+	removed := false
+	for _, value := range values {
+		if strings.EqualFold(value, username) {
+			removed = true
+			continue
+		}
+		filtered = append(filtered, value)
+	}
+	if !removed {
+		return false, nil
+	}
+	data, err := json.MarshalIndent(filtered, "", "  ")
+	if err != nil {
+		return false, err
+	}
+	return true, os.WriteFile(path, data, 0664)
+}
+
 // EnsurePlayerAccess mirrors application access into Factorio's whitelist and,
 // for management roles, into its administrator list.
 func EnsurePlayerAccess(username string, administrator bool) error {
@@ -73,8 +97,13 @@ func EnsurePlayerAccess(username string, administrator bool) error {
 
 	accessFileMutex.Lock()
 	whitelistAdded, err := addAccessEntry(config.FactorioWhitelistFile, username)
-	if err == nil && administrator {
-		_, err = addAccessEntry(config.FactorioAdminFile, username)
+	adminAdded, adminRemoved := false, false
+	if err == nil {
+		if administrator {
+			adminAdded, err = addAccessEntry(config.FactorioAdminFile, username)
+		} else {
+			adminRemoved, err = removeAccessEntry(config.FactorioAdminFile, username)
+		}
 	}
 	accessFileMutex.Unlock()
 	if err != nil {
@@ -86,8 +115,11 @@ func EnsurePlayerAccess(username string, administrator bool) error {
 		if whitelistAdded {
 			_, _ = server.Rcon.Write("/whitelist add " + username)
 		}
-		if administrator {
+		if adminAdded {
 			_, _ = server.Rcon.Write("/promote " + username)
+		}
+		if adminRemoved {
+			_, _ = server.Rcon.Write("/demote " + username)
 		}
 	}
 	return nil

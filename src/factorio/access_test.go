@@ -46,3 +46,21 @@ func TestValidPlayerName(t *testing.T) {
 		}
 	}
 }
+
+func TestRemoveAccessEntryIgnoresCase(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "admins.json")
+	if err := os.WriteFile(path, []byte(`["Alpha","Beta"]`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	removed, err := removeAccessEntry(path, "alpha")
+	if err != nil || !removed {
+		t.Fatalf("remove = %v, %v; want true, nil", removed, err)
+	}
+	values, err := readAccessList(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(values) != 1 || values[0] != "Beta" {
+		t.Fatalf("access list = %#v; want [Beta]", values)
+	}
+}
