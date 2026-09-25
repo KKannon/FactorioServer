@@ -46,6 +46,12 @@ const Controls = ({serverStatus, identity, onServerStatusChange}) => {
     }
 
     const killServer = async () => {
+        const confirmation = await Swal.fire({
+            icon: 'error', title: t('controls.killTitle'), text: t('controls.killText'),
+            showCancelButton: true, confirmButtonText: t('controls.killConfirm'), cancelButtonText: t('controls.cancel'),
+            confirmButtonColor: '#dc2626', cancelButtonColor: '#6b7280',
+        });
+        if (!confirmation.isConfirmed) return;
         setIsKilling(true);
         try { await server.kill(); }
         finally { setIsKilling(false); }

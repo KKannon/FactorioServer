@@ -83,6 +83,7 @@ const Layout = ({identity, handleLogout, serverStatus}) => {
                     <div className="py-4 px-2 accentuated">
                         <h1 className="text-dirty-white text-lg mb-2 mx-4">{t('administration')}</h1>
                         <div className="text-white text-center rounded-sm bg-black shadow-inner mx-4 p-1">
+                            {identity?.can_manage && <Link to="/audit">{t('nav.audit')}</Link>}
                             <Link to="/help" last={true}>{t('nav.help')}</Link>
                         </div>
                     </div>

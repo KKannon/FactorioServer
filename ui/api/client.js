@@ -8,6 +8,11 @@ const client = Axios.create({
     }
 });
 
+// Destructive endpoints require a route-bound confirmation header in addition
+// to the authenticated session and management role. Callers add it only after
+// their confirmation dialog has been accepted.
+export const confirmed = routeName => ({headers: {'X-FSM-Confirm': routeName}});
+
 client.interceptors.response.use(res => res, err => {
     if (Axios.isCancel(err) || err.code === 'ERR_CANCELED') {
         return Promise.reject(err);

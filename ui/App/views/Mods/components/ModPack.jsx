@@ -44,7 +44,9 @@ const ModPack = ({modPack, reloadModPacks, factorioVersion, reloadMods, disabled
             .then(reloadModPacks)
     }
 
-    const deleteMod = modName => {
+    const deleteMod = async modName => {
+        const confirmation = await Swal.fire({icon: 'warning', title: t('mods.deleteTitle'), text: t('mods.deleteText', {name: modName}), showCancelButton: true, confirmButtonText: t('saves.deleteConfirm'), cancelButtonText: t('controls.cancel'), confirmButtonColor: '#dc2626'});
+        if (!confirmation.isConfirmed) return;
         return modsResource
             .packs
             .mods

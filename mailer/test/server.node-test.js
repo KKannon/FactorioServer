@@ -34,6 +34,13 @@ test("player bridge installation has a restart notification", () => {
   assert.match(eventDefinitions.InstallPlayerBridge.status, /reinicialização/i);
 });
 
+test("destructive administration events use server-owned templates", () => {
+  for (const event of ["RemoveSave", "DeleteMod", "DeleteAllMods", "ModPackDelete", "LoadModPack"]) {
+    assert.ok(eventDefinitions[event]);
+    assert.match(eventDefinitions[event].resource, /Factorio/i);
+  }
+});
+
 test("notification endpoint authenticates and delegates to the library service", async (t) => {
   const sent = [];
   const server = createMailerServer({

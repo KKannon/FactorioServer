@@ -1,4 +1,4 @@
-import client from "../client";
+import client, {confirmed} from "../client";
 
 export default {
     factorioVersion: async () => {
@@ -6,7 +6,7 @@ export default {
         return response.data;
     },
     installVersion: async version => {
-        const response = await client.post('/api/server/version', {version});
+        const response = await client.post('/api/server/version', {version}, confirmed('InstallFactorioVersion'));
         return response.data;
     },
     versions: async () => {
@@ -34,7 +34,7 @@ export default {
         return response.data;
     },
     kill: async () => {
-        const response = await client.post('/api/server/kill');
+        const response = await client.post('/api/server/kill', undefined, confirmed('KillServer'));
         return response.data;
     }
 }

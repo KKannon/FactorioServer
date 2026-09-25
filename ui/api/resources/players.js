@@ -1,9 +1,9 @@
-import client from "../client";
+import client, {confirmed} from "../client";
 
 export default {
     access: async () => (await client.get('/api/players/access')).data,
     intelligence: async () => (await client.get('/api/players/intelligence')).data,
-    installBridge: async () => (await client.post('/api/players/intelligence/bridge')).data,
+    installBridge: async () => (await client.post('/api/players/intelligence/bridge', undefined, confirmed('InstallPlayerBridge'))).data,
     setWhitelistEnabled: async enabled => (await client.post('/api/players/whitelist/enabled', {enabled})).data,
     whitelist: {
         add: async username => (await client.post('/api/players/whitelist', {username})).data,

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -19,6 +19,7 @@ import (
 )
 
 const readHttpBodyError = "Could not read the Request Body."
+const maxJSONBodySize = 2 << 20
 
 type JSONResponseFileInput struct {
 	Success   bool        `json:"success"`
@@ -43,11 +44,17 @@ func ReadRequestBody(w http.ResponseWriter, r *http.Request) (body []byte, resp 
 		return
 	}
 
-	body, err = ioutil.ReadAll(r.Body)
+	r.Body = http.MaxBytesReader(w, r.Body, maxJSONBodySize)
+	body, err = io.ReadAll(r.Body)
 	if err != nil {
 		resp = fmt.Sprintf("%s: %s", readHttpBodyError, err)
 		log.Println(resp)
-		w.WriteHeader(http.StatusInternalServerError)
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
 	}
 	return
 }
@@ -491,7 +498,7 @@ func UpdateServerSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	config := bootstrap.GetConfig()
-	err = ioutil.WriteFile(config.SettingsFile, settings, 0644)
+	err = os.WriteFile(config.SettingsFile, settings, 0644)
 	if err != nil {
 		resp = fmt.Sprintf("Failed to save server settings: %v\n", err)
 		log.Println(resp)
@@ -510,7 +517,7 @@ func UpdateServerSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = ioutil.WriteFile(config.FactorioAdminFile, admins, 0664)
+		err = os.WriteFile(config.FactorioAdminFile, admins, 0664)
 		if err != nil {
 			resp = fmt.Sprintf("Failed to save admins: %s", err)
 			log.Println(resp)

@@ -1,10 +1,12 @@
 package api
 
 import (
+	"net/http"
+	"net/url"
+	"strings"
+
 	"github.com/OpenFactorioServerManager/factorio-server-manager/api/websocket"
 	"github.com/OpenFactorioServerManager/factorio-server-manager/factorio"
-	"net/http"
-
 	"github.com/gorilla/mux"
 )
 
@@ -43,6 +45,7 @@ func NewRouter() *mux.Router {
 	// Serves all JSON REST handlers prefixed with /api
 	apiRouter := mainRouter.PathPrefix("/api").Subrouter()
 	apiRouter.Use(AuthMiddleware)
+	apiRouter.Use(PanelRequestMiddleware)
 
 	// use subrouter for calls, that run only, when server is turned off
 	serverOffRouter := apiRouter.NewRoute().Subrouter()
@@ -58,9 +61,13 @@ func NewRouter() *mux.Router {
 		}
 		var handler http.Handler = route.HandlerFunc
 		handler = NotificationMiddleware(route.Name, handler)
+		if destructiveRoutes[route.Name] {
+			handler = RequireDestructiveConfirmation(route.Name, handler)
+		}
 		if managementRoutes[route.Name] {
 			handler = RequireManagementRole(handler)
 		}
+		handler = AuditMiddleware(route.Name, route.Method, handler)
 		router.Methods(route.Method).
 			Path(route.Pattern).
 			Name(route.Name).
@@ -128,6 +135,10 @@ func NewRouter() *mux.Router {
 		Methods("GET").
 		Name("Logs").
 		Handler(http.StripPrefix("/logs", http.FileServer(http.Dir("./app/"))))
+	subRouter.Path("/audit").
+		Methods("GET").
+		Name("Audit").
+		Handler(http.StripPrefix("/audit", http.FileServer(http.Dir("./app/"))))
 	subRouter.Path("/help").
 		Methods("GET").
 		Name("Help").
@@ -151,6 +162,48 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
+		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
+		w.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// PanelRequestMiddleware rejects browser-driven state changes that did not
+// originate in this application. The custom header forces a CORS preflight for
+// cross-site JavaScript, while Sec-Fetch-Site and Origin provide defense in depth.
+func PanelRequestMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet || r.Method == http.MethodHead || r.Method == http.MethodOptions {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if r.Header.Get("X-FSM-Request") != "1" || strings.EqualFold(r.Header.Get("Sec-Fetch-Site"), "cross-site") {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		if origin := strings.TrimSpace(r.Header.Get("Origin")); origin != "" {
+			parsed, err := url.Parse(origin)
+			forwardedHost := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Host"), ",")[0])
+			if forwardedHost == "" {
+				forwardedHost = r.Host
+			}
+			if err != nil || parsed.Host == "" || !strings.EqualFold(parsed.Host, forwardedHost) {
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func RequireDestructiveConfirmation(routeName string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-FSM-Confirm") != routeName {
+			http.Error(w, "Explicit confirmation is required", http.StatusPreconditionRequired)
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }
@@ -168,6 +221,7 @@ var managementRoutes = map[string]bool{
 	"GetPlayerAccess":        true, "AddWhitelistPlayer": true, "RemoveWhitelistPlayer": true,
 	"AddAdmin": true, "RemoveAdmin": true, "AddBan": true, "RemoveBan": true, "UpdateWhitelistPolicy": true,
 	"InstallPlayerBridge": true,
+	"GetAuditEvents":      true, "GetSecurityOverview": true,
 	"ModPortalListAllMods": true, "ModPortalGetModInfo": true, "ModPortalLoginStatus": true,
 	"ModPortalInstallMod": true, "ModPortalLogin": true, "ModPortalLogout": true, "ModPortalInstallMultiple": true,
 	"ListInstalledMods": true, "ToggleMod": true, "DeleteMod": true, "DeleteAllMods": true, "UpdateMod": true, "UploadMod": true, "DownloadMods": true,
@@ -178,9 +232,30 @@ var managementRoutes = map[string]bool{
 	"ModPackModPortalInstallMultiple": true,
 }
 
+var destructiveRoutes = map[string]bool{
+	"RemoveSave": true, "RestoreSaveBackup": true, "RemoveSaveBackup": true,
+	"KillServer": true, "InstallFactorioVersion": true, "RemoveMapPreset": true,
+	"DeleteMod": true, "DeleteAllMods": true, "ModPackDelete": true,
+	"LoadModPack": true, "ModPackDeleteMod": true, "ModPackDeleteAllMod": true,
+	"InstallPlayerBridge": true,
+}
+
 // Defines all API REST endpoints
 // All routes are prefixed with /api
 var apiRoutes = Routes{
+	{
+		"GetAuditEvents",
+		"GET",
+		"/audit",
+		GetAuditEvents,
+		false,
+	}, {
+		"GetSecurityOverview",
+		"GET",
+		"/security/overview",
+		GetSecurityOverview,
+		false,
+	},
 	{
 		"ListSaves",
 		"GET",

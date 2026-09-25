@@ -452,6 +452,9 @@ func ModPackModUploadHandler(w http.ResponseWriter, r *http.Request) {
 	defer formFile.Close()
 
 	err, modPackMap, modPackName, resp := ReadModPackRequest(w, r)
+	if err != nil {
+		return
+	}
 
 	err = modPackMap[modPackName].Mods.UploadMod(formFile, fileHeader)
 	if err != nil {

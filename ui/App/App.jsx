@@ -18,6 +18,7 @@ import {applyPreferences, t} from "../identity/preferences";
 import ServerStatusGate from "./components/ServerStatusGate";
 import Players from "./views/Players";
 import Monitoring from "./views/Monitoring";
+import Audit from "./views/Audit";
 
 const ProtectedRoute = ({identity}) => identity
     ? <Outlet/>
@@ -144,6 +145,7 @@ const App = () => {
                         <Route path="console" element={<Console canManage={identity?.can_manage} serverStatus={serverStatus}/>}/>
                         <Route path="monitoring" element={<Monitoring/>}/>
                         <Route path="logs" element={<Logs serverStatus={serverStatus}/>}/>
+                        <Route path="audit" element={<Audit/>}/>
                     </Route>
                     <Route path="help" element={<Help serverStatus={serverStatus}/>}/>
                 </Route>

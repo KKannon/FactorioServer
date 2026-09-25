@@ -64,6 +64,13 @@ The production callback is exactly
 `http://umbrel.local:3101`; TLS terminates at Cloudflare, while the browser sees
 HTTPS and therefore accepts the Secure session cookie.
 
+Administrative actions are retained for 180 days in the existing SQLite
+database and are available under **Auditoria e segurança**. State-changing API
+requests require the panel request header, and destructive routes also require
+the route-bound confirmation emitted after the UI warning is accepted. Audit
+records intentionally exclude request bodies, query strings, e-mail addresses,
+cookies, credentials, tokens, and RCON secrets. See `SECURITY.md`.
+
 Authentication uses Authorization Code + PKCE S256. OIDC access, refresh, and
 ID tokens are encrypted in the persistent SQLite database and are never sent to
 the browser. Logout removes the local session before redirecting to the provider.

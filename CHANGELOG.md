@@ -33,6 +33,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Optional read-only Factorio bridge for player inventory, equipment, position,
   health, playtime, crafting queue, and forward-looking activity statistics.
 - Self-only player profiles for members and all-player visibility for management roles.
+- Persistent administrative audit history with actor, action, resource, result,
+  duration, and request identifiers, plus a management-only security overview.
+- Backend-enforced confirmation for destructive operations and same-origin
+  protection for every state-changing API request.
 
 ### Changed
 - Destructive save and server operations now use non-GET HTTP methods.
@@ -47,6 +51,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Player intelligence explicitly distinguishes native lifetime data from bridge
   counters collected only after installation; unsupported achievements and
   ambiguous per-player kill totals are not fabricated.
+- Administrative audit records never persist request bodies, query strings,
+  e-mail addresses, cookies, credentials, tokens, or RCON secrets.
 
 ### Fixed
 - Map previews now render from their generated browser blob under the production

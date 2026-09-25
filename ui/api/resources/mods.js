@@ -1,4 +1,4 @@
-import client from "../client";
+import client, {confirmed} from "../client";
 
 const mods = {
     installed: async () => {
@@ -10,7 +10,7 @@ const mods = {
         return response.data;
     },
     delete: async name => {
-        const response = await client.post('/api/mods/delete', {name});
+        const response = await client.post('/api/mods/delete', {name}, confirmed('DeleteMod'));
         return response.data;
     },
     update: async ({modName, downloadUrl, fileName}) => {
@@ -29,7 +29,7 @@ const mods = {
         return response.data;
     },
     deleteAll: async () => {
-        const response = await client.post('/api/mods/delete/all');
+        const response = await client.post('/api/mods/delete/all', undefined, confirmed('DeleteAllMods'));
         return response.data;
     },
     downloadAllURL: '/api/mods/download',
@@ -80,7 +80,7 @@ const mods = {
             return response.data;
         },
         delete: async name => {
-            const response = await client.post(`/api/mods/packs/${encodeURIComponent(name)}/delete`);
+            const response = await client.post(`/api/mods/packs/${encodeURIComponent(name)}/delete`, undefined, confirmed('ModPackDelete'));
             return response.data;
         },
         download: async name => {
@@ -93,7 +93,7 @@ const mods = {
             return response.data;
         },
         load: async name => {
-            const response = await client.post(`/api/mods/packs/${encodeURIComponent(name)}/load`);
+            const response = await client.post(`/api/mods/packs/${encodeURIComponent(name)}/load`, undefined, confirmed('LoadModPack'));
             return response.data;
         },
         mods: {
@@ -114,7 +114,7 @@ const mods = {
             delete: async (packName, modName) => {
                 const response = await client.post(`/api/mods/packs/${encodeURIComponent(packName)}/mod/delete`, {
                     name: modName
-                });
+                }, confirmed('ModPackDeleteMod'));
                 return response.data;
             },
         }

@@ -1,4 +1,4 @@
-import client from "../client";
+import client, {confirmed} from "../client";
 
 export default {
     defaults: async () => (await client.get('/api/map-generator/defaults')).data,
@@ -7,6 +7,6 @@ export default {
     presets: {
         list: async () => (await client.get('/api/map-generator/presets')).data,
         save: async preset => (await client.post('/api/map-generator/presets', preset)).data,
-        delete: async preset => (await client.delete(`/api/map-generator/presets/${encodeURIComponent(preset.id)}`)).data,
+        delete: async preset => (await client.delete(`/api/map-generator/presets/${encodeURIComponent(preset.id)}`, confirmed('RemoveMapPreset'))).data,
     },
 };

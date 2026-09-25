@@ -62,13 +62,15 @@ var notificationRoutes = map[string]string{
 	"StartServer": "Servidor Factorio", "StopServer": "Servidor Factorio",
 	"RestartServer": "Servidor Factorio", "KillServer": "Servidor Factorio",
 	"CreateWorld": "Mundo Factorio", "CreateSaveBackup": "Save Factorio",
-	"RestoreSaveBackup": "Save Factorio", "RemoveSaveBackup": "Save Factorio", "RenameSave": "Save Factorio",
+	"RemoveSave": "Save Factorio", "RestoreSaveBackup": "Save Factorio", "RemoveSaveBackup": "Save Factorio", "RenameSave": "Save Factorio",
 	"AddWhitelistPlayer": "Controle de jogadores", "RemoveWhitelistPlayer": "Controle de jogadores",
 	"AddAdmin": "Controle de jogadores", "RemoveAdmin": "Controle de jogadores",
 	"AddBan": "Controle de jogadores", "RemoveBan": "Controle de jogadores",
 	"UpdateWhitelistPolicy":  "Controle de jogadores",
 	"InstallPlayerBridge":    "Inteligência de jogadores",
 	"InstallFactorioVersion": "Instalação do Factorio", "UpdateServerSettings": "Configurações do servidor",
+	"DeleteMod": "Mod Factorio", "DeleteAllMods": "Mods Factorio",
+	"ModPackDelete": "Modpack Factorio", "LoadModPack": "Modpack Factorio",
 }
 
 // SetupNotifications starts a bounded, best-effort delivery worker. Operational
