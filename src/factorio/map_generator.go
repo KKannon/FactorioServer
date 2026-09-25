@@ -2,6 +2,7 @@ package factorio
 
 import (
 	"archive/zip"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -140,11 +141,15 @@ func validateCreatedSave(path string) error {
 }
 
 func factorioCommand(config bootstrap.Config, args []string) *exec.Cmd {
+	return factorioCommandContext(context.Background(), config, args)
+}
+
+func factorioCommandContext(ctx context.Context, config bootstrap.Config, args []string) *exec.Cmd {
 	if config.GlibcCustom == "true" {
 		loaderArgs := []string{"--library-path", config.GlibcLibLoc, config.FactorioBinary, "--executable-path", config.FactorioBinary}
-		return exec.Command(config.GlibcLocation, append(loaderArgs, args...)...)
+		return exec.CommandContext(ctx, config.GlibcLocation, append(loaderArgs, args...)...)
 	}
-	return exec.Command(config.FactorioBinary, args...)
+	return exec.CommandContext(ctx, config.FactorioBinary, args...)
 }
 
 func mapConfigurationArgs(request WorldCreationRequest) ([]string, func(), error) {
@@ -221,8 +226,18 @@ func CreateWorld(request WorldCreationRequest) (Save, string, error) {
 }
 
 func GenerateMapPreview(request WorldCreationRequest) ([]byte, string, error) {
+	return GenerateMapPreviewContext(context.Background(), request)
+}
+
+// GenerateMapPreviewContext runs a preview in the request's lifetime. When a
+// newer browser request cancels the old one, CommandContext terminates the
+// obsolete Factorio process instead of leaving previews queued behind it.
+func GenerateMapPreviewContext(ctx context.Context, request WorldCreationRequest) ([]byte, string, error) {
 	saveFileMutex.Lock()
 	defer saveFileMutex.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, "", err
+	}
 	mapArgs, cleanup, err := mapConfigurationArgs(request)
 	if err != nil {
 		return nil, "", err
@@ -237,7 +252,7 @@ func GenerateMapPreview(request WorldCreationRequest) ([]byte, string, error) {
 	_ = os.Remove(previewPath)
 	defer os.Remove(previewPath)
 	args := append([]string{"--generate-map-preview", previewPath, "--map-preview-size", "768"}, mapArgs...)
-	output, commandErr := factorioCommand(bootstrap.GetConfig(), args).CombinedOutput()
+	output, commandErr := factorioCommandContext(ctx, bootstrap.GetConfig(), args).CombinedOutput()
 	if commandErr != nil {
 		return nil, string(output), fmt.Errorf("Factorio could not generate the preview: %w", commandErr)
 	}

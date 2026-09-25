@@ -1,6 +1,6 @@
 import Panel from "../components/Panel";
 import Button from "../components/Button";
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 import mapGenerator from "../../api/resources/mapGenerator";
@@ -71,6 +71,9 @@ const GameSettings = ({serverStatus}) => {
     const [busy, setBusy] = useState(false);
     const [previewBusy, setPreviewBusy] = useState(false);
     const [previewUrl, setPreviewUrl] = useState('');
+    const [previewError, setPreviewError] = useState('');
+    const previewSequence = useRef(0);
+    const previewAbort = useRef(null);
 
     const syncEditors = (generation, settings) => {
         setMapGen(generation); setMapSettings(settings);
@@ -85,6 +88,37 @@ const GameSettings = ({serverStatus}) => {
         });
     }, []);
     useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
+    useEffect(() => {
+        if (!mapGen || !mapSettings || advanced || serverStatus?.running) {
+            setPreviewBusy(false);
+            return undefined;
+        }
+        const sequence = ++previewSequence.current;
+        previewAbort.current?.abort();
+        const controller = new AbortController();
+        previewAbort.current = controller;
+        setPreviewBusy(true);
+        setPreviewError('');
+        const timer = window.setTimeout(async () => {
+            try {
+                const request = {name, preset: nativePreset, map_gen_settings: mapGen, map_settings: mapSettings};
+                if (seed !== '') request.seed = Number(seed);
+                const blob = await mapGenerator.preview(request, controller.signal);
+                if (sequence !== previewSequence.current) return;
+                setPreviewUrl(URL.createObjectURL(blob));
+            } catch (error) {
+                if (error?.code !== 'ERR_CANCELED' && error?.name !== 'CanceledError' && sequence === previewSequence.current) {
+                    setPreviewError(t('map.previewError'));
+                }
+            } finally {
+                if (sequence === previewSequence.current) setPreviewBusy(false);
+            }
+        }, 650);
+        return () => {
+            window.clearTimeout(timer);
+            controller.abort();
+        };
+    }, [advanced, mapGen, mapSettings, nativePreset, seed, serverStatus?.running]);
     const update = (current, setter, textSetter, path, value) => {
         const next = clone(current); let target = next;
         path.slice(0, -1).forEach(key => { target = target[key]; });
@@ -117,19 +151,14 @@ const GameSettings = ({serverStatus}) => {
         const parsed = currentConfiguration(); if (!parsed) return;
         const confirmation = await Swal.fire({icon: 'question', title: t('map.createTitle'), text: t('map.createText', {name}), showCancelButton: true, confirmButtonText: t('map.create'), cancelButtonText: t('controls.cancel')});
         if (!confirmation.isConfirmed) return;
+        previewAbort.current?.abort();
+        previewSequence.current += 1;
+        setPreviewBusy(false);
         setBusy(true);
         try {
             const result = await mapGenerator.create(requestFor(parsed));
             await Swal.fire({icon: 'success', title: t('map.created'), text: result.save.name}); setName('');
         } finally { setBusy(false); }
-    };
-    const generatePreview = async () => {
-        const parsed = currentConfiguration(); if (!parsed) return;
-        setPreviewBusy(true);
-        try {
-            const blob = await mapGenerator.preview(requestFor(parsed));
-            setPreviewUrl(URL.createObjectURL(blob));
-        } finally { setPreviewBusy(false); }
     };
     const savePreset = async () => {
         const parsed = currentConfiguration(); if (!parsed) return;
@@ -165,6 +194,12 @@ const GameSettings = ({serverStatus}) => {
             <Panel className="mb-6" title={t('map.world')} content={<div className="grid md:grid-cols-4 gap-4">
                 <NumberField label={t('map.width')} value={mapGen.width} min={0} onChange={value => updateGen(['width'], value)}/><NumberField label={t('map.height')} value={mapGen.height} min={0} onChange={value => updateGen(['height'], value)}/><NumberField label={t('map.startingArea')} value={mapGen.starting_area} min={0} step={0.1} onChange={value => updateGen(['starting_area'], value)}/><label className="flex items-center gap-2 mt-6"><input type="checkbox" checked={!!mapGen.peaceful_mode} onChange={event => updateGen(['peaceful_mode'], event.target.checked)}/>{t('map.peaceful')}</label>
             </div>}/>
+            <Panel className="mb-6" title={t('map.previewTitle')} content={<div className="map-live-preview">
+                {previewUrl && <img className="block max-w-full mx-auto" src={previewUrl} alt={t('map.previewTitle')}/>}
+                {previewBusy && <div className="map-preview-status" role="status">{t('map.previewGenerating')}</div>}
+                {!previewUrl && !previewBusy && !previewError && <p className="text-center opacity-70">{t('map.previewWaiting')}</p>}
+                {previewError && !previewBusy && <p className="text-center text-red-light">{previewError}</p>}
+            </div>}/>
             <Panel className="mb-6" title={t('map.resources')} content={<div className="overflow-x-auto">
                 <table className="map-resources-table w-full"><thead><tr><th className="text-left">{t('map.resource')}</th><th>{t('map.frequency')}</th><th>{t('map.size')}</th><th>{t('map.richness')}</th></tr></thead>
                     <tbody>{resources.filter(resource => mapGen.autoplace_controls?.[resource]).map(resource => {
@@ -182,12 +217,7 @@ const GameSettings = ({serverStatus}) => {
             <Panel className="mb-6" title={t('map.gameplay')} content={<div className="grid md:grid-cols-4 gap-4"><NumberField label={t('map.technologyPrice')} value={mapSettings.difficulty_settings?.technology_price_multiplier} min={0.001} step={0.1} onChange={value => updateSettings(['difficulty_settings','technology_price_multiplier'], value)}/><label className="flex items-center gap-2 mt-6"><input type="checkbox" checked={!!mapSettings.pollution?.enabled} onChange={event => updateSettings(['pollution','enabled'], event.target.checked)}/>{t('map.pollution')}</label><label className="flex items-center gap-2 mt-6"><input type="checkbox" checked={!!mapSettings.enemy_evolution?.enabled} onChange={event => updateSettings(['enemy_evolution','enabled'], event.target.checked)}/>{t('map.evolution')}</label><label className="flex items-center gap-2 mt-6"><input type="checkbox" checked={!!mapSettings.enemy_expansion?.enabled} onChange={event => updateSettings(['enemy_expansion','enabled'], event.target.checked)}/>{t('map.expansion')}</label></div>}/>
         </> : <div className="grid lg:grid-cols-2 gap-6 mb-6"><Panel title="map-gen-settings.json" content={<textarea className="w-full h-128 p-3 text-black font-mono" value={mapGenText} onChange={event => setMapGenText(event.target.value)}/>}/><Panel title="map-settings.json" content={<textarea className="w-full h-128 p-3 text-black font-mono" value={mapSettingsText} onChange={event => setMapSettingsText(event.target.value)}/>}/></div>}
         <Panel className="mb-6" title={t('map.customPresets')} content={<div className="space-y-2">{customPresets.length === 0 && <p className="opacity-70">{t('map.noCustomPresets')}</p>}{customPresets.map(preset => <div key={preset.id} className="flex justify-between items-center bg-gray-dark rounded px-3 py-2"><span>{preset.name}</span><span className="flex gap-2"><Button size="sm" onClick={() => loadPreset(preset.id)}>{t('map.load')}</Button><Button size="sm" type="danger" onClick={() => deletePreset(preset)}>{t('saves.deleteConfirm')}</Button></span></div>)}</div>}/>
-        {previewUrl && <Panel
-            className="mb-6"
-            title={t('map.previewTitle')}
-            content={<img className="block max-w-full mx-auto" src={previewUrl} alt={t('map.previewTitle')}/>}
-        />}
-        <div className="mb-8 flex gap-2 flex-wrap"><Button onClick={generatePreview} isLoading={previewBusy} isDisabled={!!serverStatus?.running || busy}>{t('map.preview')}</Button><Button type="success" isSubmit={true} isLoading={busy} isDisabled={!!serverStatus?.running || previewBusy}>{t('map.create')}</Button></div>
+        <div className="mb-8 flex gap-2 flex-wrap"><Button type="success" isSubmit={true} isLoading={busy} isDisabled={!!serverStatus?.running}>{t('map.create')}</Button></div>
     </form>;
 };
 

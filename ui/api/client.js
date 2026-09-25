@@ -9,7 +9,9 @@ const client = Axios.create({
 });
 
 client.interceptors.response.use(res => res, err => {
-    if(!err.response) {
+    if (Axios.isCancel(err) || err.code === 'ERR_CANCELED') {
+        return Promise.reject(err);
+    } else if(!err.response) {
         window.flash("Service not available", "red");
     } else if(err.response.status === 502) {
         window.flash("Service not available", "red");

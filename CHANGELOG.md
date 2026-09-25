@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Added
+- Live, latest-change-wins map preview between world dimensions and resources,
+  with debounced updates and cancellation of obsolete Factorio preview jobs.
 - Explicit `starting`, `running`, `stopping`, `stopped`, and `error` server lifecycle states.
 - Controlled server restart endpoint and restart action with confirmation in the panel.
 - RCON connection status in the server status response.

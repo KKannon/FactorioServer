@@ -42,8 +42,11 @@ func GenerateMapPreview(w http.ResponseWriter, r *http.Request) {
 		WriteResponse(w, resp)
 		return
 	}
-	preview, _, err := factorio.GenerateMapPreview(request)
+	preview, _, err := factorio.GenerateMapPreviewContext(r.Context(), request)
 	if err != nil {
+		if r.Context().Err() != nil {
+			return
+		}
 		http.Error(w, fmt.Sprintf("Could not generate map preview: %v", err), http.StatusUnprocessableEntity)
 		return
 	}

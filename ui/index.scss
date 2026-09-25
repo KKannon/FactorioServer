@@ -54,6 +54,9 @@ html[data-compact="true"] .container { max-width: 90rem; }
 .map-unavailable { display: block; text-align: center; opacity: .65; }
 .map-asset-credit { margin-top: .75rem; font-size: .75rem; opacity: .65; text-align: right; }
 .map-asset-credit a { color: var(--accent-color); text-decoration: underline; }
+.map-live-preview { position: relative; min-height: 12rem; display: grid; place-items: center; overflow: hidden; background: rgba(0,0,0,.14); }
+.map-live-preview img { grid-area: 1 / 1; max-height: 48rem; }
+.map-preview-status { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(18,18,18,.72); color: #ffe6c0; font-size: 1.1rem; font-weight: 700; }
 .mod-row td { padding-top: .65rem; padding-bottom: .65rem; border-top: 1px solid rgba(255,255,255,.08); vertical-align: middle; }
 .mod-status-ok { color: #77d47c; font-weight: 600; }
 .mod-status-error { color: #ff8585; font-weight: 600; }

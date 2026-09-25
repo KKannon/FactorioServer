@@ -1,10 +1,14 @@
 package factorio
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/OpenFactorioServerManager/factorio-server-manager/bootstrap"
 )
 
 func TestNativePresetValidation(t *testing.T) {
@@ -38,6 +42,15 @@ func TestMapSettingsSizeLimit(t *testing.T) {
 	}
 	if err := validateJSONObject(map[string]interface{}{"large": strings.Repeat("x", 1024*1024)}, "map-gen-settings"); err == nil {
 		t.Fatal("oversized map settings were accepted")
+	}
+}
+
+func TestFactorioCommandContextHonorsCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	command := factorioCommandContext(ctx, bootstrap.Config{FactorioBinary: os.Args[0]}, []string{"-test.run=^$"})
+	if err := command.Run(); !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled command returned %v, want context.Canceled", err)
 	}
 }
 
