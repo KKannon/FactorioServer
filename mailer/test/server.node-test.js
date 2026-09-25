@@ -29,6 +29,18 @@ test("monitoring alerts use the backend-owned system template", () => {
   assert.match(eventDefinitions.MonitoringAlert.action, /monitoramento/i);
 });
 
+test("server failures render an explicit actionable alert", async () => {
+  const templateDir = fileURLToPath(new URL("../templates", import.meta.url));
+  const templates = await loadTemplates({ templateDir });
+  const definition = eventDefinitions.ServerFailure;
+  const values = variablesFor({ actorName: "Admin", actorRole: "owner", resource: "world.zip", detail: "require_user_verification must be enabled", occurredAt: "2026-09-25T12:00:00Z" }, definition);
+  const rendered = renderTemplate(templates[definition.template], values);
+  assert.match(rendered.subject, /Falha/);
+  assert.match(rendered.html, /require_user_verification must be enabled/);
+  assert.match(rendered.text, /Intervenção necessária/);
+  assert.doesNotMatch(`${rendered.subject}${rendered.html}${rendered.text}`, /\{\{\{/);
+});
+
 test("player bridge installation has a restart notification", () => {
   assert.equal(eventDefinitions.InstallPlayerBridge.template, "system");
   assert.match(eventDefinitions.InstallPlayerBridge.status, /reinicialização/i);

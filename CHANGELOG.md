@@ -37,6 +37,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   duration, and request identifiers, plus a management-only security overview.
 - Backend-enforced confirmation for destructive operations and same-origin
   protection for every state-changing API request.
+- Actionable failure notifications for Factorio startup and restart errors,
+  including the safe process-reported cause instead of only the exit status.
 
 ### Changed
 - Destructive save and server operations now use non-GET HTTP methods.

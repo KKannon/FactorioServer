@@ -32,3 +32,14 @@ func TestTerminalStatesAreNotRunning(t *testing.T) {
 		t.Fatal("stopped state must not be reported as running")
 	}
 }
+
+func TestRememberProcessErrorKeepsUsefulCause(t *testing.T) {
+	server := &Server{}
+	server.rememberProcessError("   4.185 Error CommandLineMultiplayer.cpp:183: require_user_verification must be enabled for public games.")
+	server.mu.RLock()
+	detail := server.processError
+	server.mu.RUnlock()
+	if detail != "CommandLineMultiplayer.cpp:183: require_user_verification must be enabled for public games." {
+		t.Fatalf("process error = %q", detail)
+	}
+}

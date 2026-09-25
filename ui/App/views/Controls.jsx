@@ -33,7 +33,14 @@ const Controls = ({serverStatus, identity, onServerStatusChange}) => {
 
     const { handleSubmit, reset, register, formState: {errors} } = useForm();
 
+    const requestFailureNotifications = () => {
+        if ('Notification' in window && window.Notification.permission === 'default') {
+            window.Notification.requestPermission().catch(() => {});
+        }
+    };
+
     const startServer = async (data) => {
+        requestFailureNotifications();
         setIsStarting(true);
         try { await server.start(data.ip, parseInt(data.port), data.save); }
         finally { setIsStarting(false); }
@@ -58,6 +65,7 @@ const Controls = ({serverStatus, identity, onServerStatusChange}) => {
     }
 
     const restartServer = async () => {
+        requestFailureNotifications();
         const confirmation = await Swal.fire({
             icon: 'warning',
             title: t('controls.restartTitle'),

@@ -46,6 +46,7 @@ export function variablesFor(payload, definition, options = {}) {
     dateStyle: "long", timeStyle: "short", timeZone: options.timezone ?? "America/Sao_Paulo",
   }).format(occurredAt);
   const panelUrl = options.panelUrl ?? "https://factorio.stupidll.com";
+  const detail = requiredString(payload.detail ?? "Consulte os logs no painel.", "detail", 500);
   return {
     ACTION: definition.action,
     STATUS: definition.status,
@@ -55,6 +56,8 @@ export function variablesFor(payload, definition, options = {}) {
     ROLE_TEXT: role,
     RESOURCE_HTML: escapeHtml(resource),
     RESOURCE_TEXT: resource,
+    DETAIL_HTML: escapeHtml(detail),
+    DETAIL_TEXT: detail,
     TIME_HTML: escapeHtml(time),
     TIME_TEXT: time,
     PANEL_URL: panelUrl,

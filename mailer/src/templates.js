@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 export const eventDefinitions = Object.freeze({
   MailIntegrationTest: { template: "system", action: "Teste de integração de e-mail", resource: "StupidMailCenter", status: "Concluído" },
   MonitoringAlert: { template: "system", action: "Alerta de monitoramento", resource: "Servidor Factorio", status: "Atenção necessária" },
+  ServerFailure: { template: "failure", action: "Falha no servidor Factorio", resource: "Servidor Factorio", status: "Intervenção necessária" },
   InstallPlayerBridge: { template: "system", action: "Bridge de inteligência de jogadores instalado", resource: "Servidor Factorio", status: "Reinicialização necessária" },
   RemoveSave: { template: "world", action: "Exclusão segura de mundo", resource: "Save Factorio", status: "Concluído com backup" },
   DeleteMod: { template: "system", action: "Mod removido", resource: "Mod Factorio", status: "Concluído" },
@@ -37,6 +38,7 @@ const templateDefinitions = Object.freeze({
   world: { name: "factorio-world-operation-v1", subject: "[Factorio] {{{ACTION}}}", file: "world" },
   access: { name: "factorio-access-change-v1", subject: "[Factorio] Alteração de acesso", file: "access" },
   system: { name: "factorio-system-change-v1", subject: "[Factorio] {{{ACTION}}}", file: "system" },
+  failure: { name: "factorio-server-failure-v1", subject: "[Factorio] Falha no servidor — ação necessária", file: "failure" },
 });
 
 export async function loadTemplates(options = {}) {

@@ -43,6 +43,7 @@ type notificationPayload struct {
 	ActorName      string `json:"actorName"`
 	ActorRole      string `json:"actorRole"`
 	Resource       string `json:"resource"`
+	Detail         string `json:"detail,omitempty"`
 	OccurredAt     string `json:"occurredAt"`
 	IdempotencyKey string `json:"idempotencyKey"`
 	WelcomeUserID  string `json:"-"`
@@ -267,6 +268,55 @@ func enqueueNotification(routeName string, r *http.Request) {
 	case notifications.queue <- payload:
 	default:
 		log.Printf("Email notification queue is full; dropped event %s", routeName)
+	}
+}
+
+func safeNotificationDetail(value string) string {
+	value = strings.Map(func(character rune) rune {
+		if character < 32 || character == 127 {
+			return ' '
+		}
+		return character
+	}, strings.TrimSpace(value))
+	value = strings.Join(strings.Fields(value), " ")
+	if len(value) > 500 {
+		value = value[:500]
+	}
+	return value
+}
+
+func enqueueServerFailure(user AuthUser, resource string, failure error) {
+	if notifications == nil || failure == nil {
+		return
+	}
+	actorName := strings.TrimSpace(user.Name)
+	if actorName == "" {
+		actorName = strings.TrimSpace(user.Email)
+	}
+	if actorName == "" {
+		actorName = "Monitoramento automático"
+	}
+	actorRole := strings.TrimSpace(user.Role)
+	if actorRole == "" {
+		actorRole = "system"
+	}
+	recipients := []string{strings.TrimSpace(user.Email), strings.TrimSpace(os.Getenv("STUPID_MONITORING_ALERT_RECIPIENT"))}
+	seen := make(map[string]bool)
+	for _, recipient := range recipients {
+		if recipient == "" || seen[recipient] {
+			continue
+		}
+		seen[recipient] = true
+		payload := notificationPayload{
+			Event: "ServerFailure", Recipient: recipient, ActorName: actorName, ActorRole: actorRole,
+			Resource: safeNotificationDetail(resource), Detail: safeNotificationDetail(failure.Error()),
+			OccurredAt: time.Now().UTC().Format(time.RFC3339), IdempotencyKey: notificationID("ServerFailure"),
+		}
+		select {
+		case notifications.queue <- payload:
+		default:
+			log.Print("Email notification queue is full; dropped Factorio server failure alert")
+		}
 	}
 }
 

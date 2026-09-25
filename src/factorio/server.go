@@ -45,6 +45,7 @@ type Server struct {
 	processID      int                    `json:"-"`
 	startedAt      time.Time              `json:"-"`
 	onlinePlayers  map[string]time.Time   `json:"-"`
+	processError   string                 `json:"-"`
 }
 
 type ServerStatus struct {
@@ -196,6 +197,7 @@ func (server *Server) PrepareStart(savefile string, bindIP string, port int) err
 	server.Running = true
 	server.RconConnected = false
 	server.LastError = ""
+	server.processError = ""
 	server.mu.Unlock()
 	server.broadcastStatus()
 	return nil
@@ -437,6 +439,12 @@ func (server *Server) Run() (runErr error) {
 	}
 	defer func() {
 		if runErr != nil {
+			server.mu.RLock()
+			processError := server.processError
+			server.mu.RUnlock()
+			if processError != "" {
+				runErr = errors.New(processError)
+			}
 			server.SetState(StateError, runErr.Error())
 		}
 	}()
@@ -569,6 +577,7 @@ func (server *Server) parseRunningCommand(std io.ReadCloser) (err error) {
 		if len(line) > 1 {
 			// Check if Factorio Server reports any errors if so handle it
 			if line[1] == "Error" {
+				server.rememberProcessError(text)
 				err := server.checkLogError(line)
 				if err != nil {
 					log.Printf("Error checking Factorio Server Error: %s", err)
@@ -596,6 +605,19 @@ func (server *Server) parseRunningCommand(std io.ReadCloser) (err error) {
 		return err
 	}
 	return nil
+}
+
+func (server *Server) rememberProcessError(line string) {
+	detail := strings.TrimSpace(line)
+	if index := strings.Index(detail, "Error "); index >= 0 {
+		detail = strings.TrimSpace(detail[index+len("Error "):])
+	}
+	if len(detail) > 500 {
+		detail = detail[:500]
+	}
+	server.mu.Lock()
+	server.processError = detail
+	server.mu.Unlock()
 }
 
 func (server *Server) writeLog(logline string) error {

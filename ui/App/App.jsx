@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import userResource from "../api/resources/user";
 import Login from "./views/Login";
 import {Navigate, Route, Routes} from "react-router";
@@ -36,6 +36,7 @@ const App = () => {
     const [serverStatusError, setServerStatusError] = useState(null);
     const [serverStatusRequest, setServerStatusRequest] = useState(0);
     const [lastProfileSync, setLastProfileSync] = useState(0);
+    const lastPushedServerError = useRef('');
 
     const patchServerStatus = useCallback(patch => {
         setServerStatus(current => current ? {...current, ...patch} : current);
@@ -76,6 +77,16 @@ const App = () => {
             setServerStatus(value);
             setServerStatusError(null);
             setServerStatusLoading(false);
+            const failure = value.state === 'error' ? String(value.last_error || '').trim() : '';
+            if (!failure) {
+                lastPushedServerError.current = '';
+            } else if (failure !== lastPushedServerError.current) {
+                lastPushedServerError.current = failure;
+                if ('Notification' in window && window.Notification.permission === 'granted') {
+                    try { new window.Notification(t('notifications.serverFailureTitle'), {body: failure, tag: 'factorio-server-failure'}); }
+                    catch (error) { console.error('Could not display server failure notification', error); }
+                }
+            }
         };
         const onStatus = value => {
             try { acceptServerStatus(JSON.parse(value)); }

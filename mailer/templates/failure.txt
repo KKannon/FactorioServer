@@ -1,0 +1,10 @@
+Factorio Server Manager — Falha no servidor
+
+{{{ACTION}}}
+Recurso: {{{RESOURCE_TEXT}}}
+Status: {{{STATUS}}}
+Causa: {{{DETAIL_TEXT}}}
+Solicitado por {{{ACTOR_TEXT}}} em {{{TIME_TEXT}}}.
+
+Abra o painel para revisar a configuração e os logs:
+{{{PANEL_URL}}}

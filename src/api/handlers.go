@@ -337,9 +337,12 @@ func StartServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	notificationUser, _ := r.Context().Value(authContextKey{}).(AuthUser)
+	failureResource := fmt.Sprintf("Servidor Factorio · %s", request.Savefile)
 	go func() {
 		if runErr := server.Run(); runErr != nil {
 			log.Printf("Error starting Factorio server: %+v", runErr)
+			enqueueServerFailure(notificationUser, failureResource, runErr)
 			return
 		}
 	}()
@@ -386,9 +389,12 @@ func RestartServer(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusConflict)
 		return
 	}
+	notificationUser, _ := r.Context().Value(authContextKey{}).(AuthUser)
+	failureResource := fmt.Sprintf("Servidor Factorio · %s", server.Status().Savefile)
 	go func() {
 		if err := server.Restart(); err != nil {
 			log.Printf("Error restarting Factorio server: %v", err)
+			enqueueServerFailure(notificationUser, failureResource, err)
 		}
 	}()
 	w.WriteHeader(http.StatusAccepted)

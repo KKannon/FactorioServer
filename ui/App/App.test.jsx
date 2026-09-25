@@ -34,6 +34,9 @@ import App from './App';
 
 beforeAll(() => { globalThis.IS_REACT_ACT_ENVIRONMENT = true; });
 beforeEach(() => {
+    const browserNotification = vi.fn();
+    browserNotification.permission = 'granted';
+    vi.stubGlobal('Notification', browserNotification);
     dependencies.handlers = {};
     dependencies.userStatus.mockResolvedValue({
         public_user_id: 'user-1', name: 'Admin', role: 'admin', can_manage: true,
@@ -47,7 +50,10 @@ beforeEach(() => {
     });
     dependencies.saves.mockResolvedValue([{name: 'Load Latest (world.zip)'}]);
 });
-afterEach(() => vi.clearAllMocks());
+afterEach(() => {
+    vi.clearAllMocks();
+    vi.unstubAllGlobals();
+});
 
 describe('App status updates', () => {
     it('keeps the active panel mounted and offers the installed Factorio version', async () => {
@@ -74,6 +80,7 @@ describe('App status updates', () => {
         expect(container.querySelector('form')).toBe(originalForm);
         expect(dependencies.saves).toHaveBeenCalledTimes(1);
         expect(dependencies.versions).toHaveBeenCalledTimes(1);
+        expect(window.Notification).toHaveBeenCalledWith('Falha no servidor Factorio', expect.objectContaining({body: 'exit status 1'}));
         act(() => root.unmount());
     });
 });

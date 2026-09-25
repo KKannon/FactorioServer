@@ -72,3 +72,24 @@ func TestWelcomeNotificationQueuesOnlyOncePerUser(t *testing.T) {
 	require.NoError(t, db.First(&record, "public_user_id = ?", user.PublicUserID).Error)
 	require.Equal(t, welcomeQueued, record.Status)
 }
+
+func TestServerFailureQueuesSafeAlertForRequestingAdministrator(t *testing.T) {
+	previous := notifications
+	notifications = &notificationDispatcher{queue: make(chan notificationPayload, 1)}
+	t.Cleanup(func() { notifications = previous })
+
+	enqueueServerFailure(
+		AuthUser{Email: "admin@example.com", Name: "Admin", Role: "owner"},
+		"Servidor Factorio · world.zip",
+		assertiveError("require_user_verification must be enabled\nfor public games"),
+	)
+
+	payload := <-notifications.queue
+	require.Equal(t, "ServerFailure", payload.Event)
+	require.Equal(t, "admin@example.com", payload.Recipient)
+	require.Equal(t, "require_user_verification must be enabled for public games", payload.Detail)
+}
+
+type assertiveError string
+
+func (err assertiveError) Error() string { return string(err) }
