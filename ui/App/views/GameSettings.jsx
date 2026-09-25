@@ -7,7 +7,29 @@ import mapGenerator from "../../api/resources/mapGenerator";
 import {t} from "../../identity/preferences";
 
 const clone = value => JSON.parse(JSON.stringify(value));
-const resources = ['coal', 'stone', 'copper-ore', 'iron-ore', 'uranium-ore', 'crude-oil', 'water', 'trees', 'enemy-base'];
+const resourceDetails = {
+    'iron-ore': {image: 'https://wiki.factorio.com/images/Iron_ore.png'},
+    'copper-ore': {image: 'https://wiki.factorio.com/images/Copper_ore.png'},
+    stone: {image: 'https://wiki.factorio.com/images/Stone.png'},
+    coal: {image: 'https://wiki.factorio.com/images/Coal.png'},
+    'crude-oil': {image: 'https://wiki.factorio.com/images/Crude_oil.png'},
+    'uranium-ore': {image: 'https://wiki.factorio.com/images/Uranium_ore.png'},
+    water: {image: 'https://wiki.factorio.com/images/Water.png'},
+    trees: {image: 'https://wiki.factorio.com/images/Green_tree.png'},
+    'enemy-base': {image: 'https://wiki.factorio.com/images/Biters.png'},
+};
+const resources = Object.keys(resourceDetails);
+const percentage = value => Math.max(17, Math.min(600, Math.round(Number(value || 1) * 100)));
+const PercentageField = ({value, disabled, onChange, label}) => {
+    const current = percentage(value);
+    const progress = ((current - 17) / (600 - 17)) * 100;
+    return <label className={`map-percentage${disabled ? ' is-disabled' : ''}`} title={label}>
+        <input aria-label={label} className="factorio-range" type="range" min="17" max="600" step="1"
+               disabled={disabled} value={current} style={{'--range-progress': `${progress}%`}}
+               onChange={event => onChange(Number(event.target.value) / 100)}/>
+        <output>{current}%</output>
+    </label>;
+};
 const NumberField = ({label, value, onChange, min, max, step = 1}) => <label className="block">
     <span className="block text-sm mb-1">{label}</span>
     <input className="shadow border w-full py-2 px-3 text-black" type="number" value={value ?? ''}
@@ -100,6 +122,11 @@ const GameSettings = ({serverStatus}) => {
         if (result.isConfirmed) { await mapGenerator.presets.delete(preset); await refreshPresets(); }
     };
     const updateGen = (path, value) => update(mapGen, setMapGen, setMapGenText, path, value);
+    const updateResource = (resource, changes) => {
+        const next = clone(mapGen);
+        Object.assign(next.autoplace_controls[resource], changes);
+        setMapGen(next); setMapGenText(JSON.stringify(next, null, 2));
+    };
     const updateSettings = (path, value) => update(mapSettings, setMapSettings, setMapSettingsText, path, value);
     if (!defaults || !mapGen || !mapSettings) return <Panel title={t('map.title')} content={<p>{t('loading')}</p>}/>;
 
@@ -117,7 +144,20 @@ const GameSettings = ({serverStatus}) => {
             <Panel className="mb-6" title={t('map.world')} content={<div className="grid md:grid-cols-4 gap-4">
                 <NumberField label={t('map.width')} value={mapGen.width} min={0} onChange={value => updateGen(['width'], value)}/><NumberField label={t('map.height')} value={mapGen.height} min={0} onChange={value => updateGen(['height'], value)}/><NumberField label={t('map.startingArea')} value={mapGen.starting_area} min={0} step={0.1} onChange={value => updateGen(['starting_area'], value)}/><label className="flex items-center gap-2 mt-6"><input type="checkbox" checked={!!mapGen.peaceful_mode} onChange={event => updateGen(['peaceful_mode'], event.target.checked)}/>{t('map.peaceful')}</label>
             </div>}/>
-            <Panel className="mb-6" title={t('map.resources')} content={<div className="overflow-x-auto"><table className="w-full"><thead><tr><th className="text-left">{t('map.resource')}</th><th>{t('map.frequency')}</th><th>{t('map.size')}</th><th>{t('map.richness')}</th></tr></thead><tbody>{resources.filter(resource => mapGen.autoplace_controls?.[resource]).map(resource => { const values = mapGen.autoplace_controls[resource]; return <tr key={resource}><td>{resource}</td>{['frequency','size','richness'].map(field => <td className="px-2" key={field}>{values[field] !== undefined ? <input className="shadow border w-24 py-1 px-2 text-black" type="number" min="0" step="0.1" value={values[field]} onChange={event => updateGen(['autoplace_controls', resource, field], Number(event.target.value))}/> : '—'}</td>)}</tr>})}</tbody></table></div>}/>
+            <Panel className="mb-6" title={t('map.resources')} content={<div className="overflow-x-auto">
+                <table className="map-resources-table w-full"><thead><tr><th className="text-left">{t('map.resource')}</th><th>{t('map.frequency')}</th><th>{t('map.size')}</th><th>{t('map.richness')}</th></tr></thead>
+                    <tbody>{resources.filter(resource => mapGen.autoplace_controls?.[resource]).map(resource => {
+                        const values = mapGen.autoplace_controls[resource];
+                        const fields = ['frequency', 'size', 'richness'].filter(field => values[field] !== undefined);
+                        const enabled = fields.some(field => Number(values[field]) > 0);
+                        return <tr key={resource}>
+                            <td><label className="map-resource-name"><input type="checkbox" checked={enabled} onChange={event => updateResource(resource, Object.fromEntries(fields.map(field => [field, event.target.checked ? (Number(values[field]) > 0 ? values[field] : 1) : 0])))}/><img loading="lazy" src={resourceDetails[resource].image} alt=""/><span>{t(`map.resource.${resource}`)}</span></label></td>
+                            {['frequency', 'size', 'richness'].map(field => <td key={field}>{values[field] !== undefined ? <PercentageField label={`${t(`map.resource.${resource}`)} — ${t(`map.${field}`)}`} value={values[field]} disabled={!enabled} onChange={value => updateResource(resource, {[field]: value})}/> : <span className="map-unavailable">—</span>}</td>)}
+                        </tr>;
+                    })}</tbody>
+                </table>
+                <p className="map-asset-credit">{t('map.assetCredit')} <a href="https://wiki.factorio.com/Category:Game_images" target="_blank" rel="noreferrer">Factorio Wiki</a>.</p>
+            </div>}/>
             <Panel className="mb-6" title={t('map.gameplay')} content={<div className="grid md:grid-cols-4 gap-4"><NumberField label={t('map.technologyPrice')} value={mapSettings.difficulty_settings?.technology_price_multiplier} min={0.001} step={0.1} onChange={value => updateSettings(['difficulty_settings','technology_price_multiplier'], value)}/><label className="flex items-center gap-2 mt-6"><input type="checkbox" checked={!!mapSettings.pollution?.enabled} onChange={event => updateSettings(['pollution','enabled'], event.target.checked)}/>{t('map.pollution')}</label><label className="flex items-center gap-2 mt-6"><input type="checkbox" checked={!!mapSettings.enemy_evolution?.enabled} onChange={event => updateSettings(['enemy_evolution','enabled'], event.target.checked)}/>{t('map.evolution')}</label><label className="flex items-center gap-2 mt-6"><input type="checkbox" checked={!!mapSettings.enemy_expansion?.enabled} onChange={event => updateSettings(['enemy_expansion','enabled'], event.target.checked)}/>{t('map.expansion')}</label></div>}/>
         </> : <div className="grid lg:grid-cols-2 gap-6 mb-6"><Panel title="map-gen-settings.json" content={<textarea className="w-full h-128 p-3 text-black font-mono" value={mapGenText} onChange={event => setMapGenText(event.target.value)}/>}/><Panel title="map-settings.json" content={<textarea className="w-full h-128 p-3 text-black font-mono" value={mapSettingsText} onChange={event => setMapSettingsText(event.target.value)}/>}/></div>}
         <Panel className="mb-6" title={t('map.customPresets')} content={<div className="space-y-2">{customPresets.length === 0 && <p className="opacity-70">{t('map.noCustomPresets')}</p>}{customPresets.map(preset => <div key={preset.id} className="flex justify-between items-center bg-gray-dark rounded px-3 py-2"><span>{preset.name}</span><span className="flex gap-2"><Button size="sm" onClick={() => loadPreset(preset.id)}>{t('map.load')}</Button><Button size="sm" type="danger" onClick={() => deletePreset(preset)}>{t('saves.deleteConfirm')}</Button></span></div>)}</div>}/>
