@@ -27,11 +27,11 @@ printf '\nSTUPID_MAIL_INTERNAL_TOKEN=%s\n' "$(openssl rand -hex 32)" >> .env
 
 Email delivery runs in the private `mailer` service; no mailer port is exposed
 to the host or Cloudflare. It uses the vendored, pinned
-`lib-stupidmailjavascript` backend client and creates four versioned templates
-on first startup: server lifecycle, worlds/backups, player access, and system
-changes. Template IDs persist in the `mailer-data` volume. Successful sensitive
-actions notify the authenticated operator at the email supplied by OIDC;
-delivery failures are logged but never roll back the completed Factorio action.
+`lib-stupidmailjavascript` backend client and four backend-owned templates:
+server lifecycle, worlds/backups, player access, and system changes. Successful
+sensitive actions notify the authenticated operator at the email supplied by
+OIDC; delivery failures are logged but never roll back the completed Factorio
+action. The API key only needs the `email:send` scope.
 
 The production callback is exactly
 `https://factorio.stupidll.com/auth/callback`. The Cloudflare origin remains

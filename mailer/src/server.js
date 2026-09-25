@@ -2,7 +2,7 @@ import { createServer as createHttpServer } from "node:http";
 import { timingSafeEqual } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { StupidMailCenterService } from "lib-stupidmailjavascript";
-import { ensureTemplates, templateDefinitionFor } from "./templates.js";
+import { loadTemplates, renderTemplate, templateDefinitionFor } from "./templates.js";
 
 const maximumBodyBytes = 32 * 1024;
 
@@ -61,7 +61,7 @@ export function variablesFor(payload, definition, options = {}) {
   };
 }
 
-export function createMailerServer({ service, registry, internalToken, from, panelUrl, timezone }) {
+export function createMailerServer({ service, templates, internalToken, from, panelUrl, timezone }) {
   if (!internalToken) throw new Error("STUPID_MAIL_INTERNAL_TOKEN não está configurado");
   return createHttpServer(async (request, response) => {
     response.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -83,13 +83,15 @@ export function createMailerServer({ service, registry, internalToken, from, pan
       const event = requiredString(payload.event, "event", 100);
       const definition = templateDefinitionFor(event);
       if (!definition) throw new Error("unsupported_event");
-      const templateId = registry[definition.template];
-      if (!templateId) throw new Error("missing_template");
-      const result = await service.sendTemplate({
+      const template = templates[definition.template];
+      if (!template) throw new Error("missing_template");
+      const rendered = renderTemplate(template, variablesFor(payload, definition, { panelUrl, timezone }));
+      const result = await service.sendEmail({
         from,
         to: requiredString(payload.recipient, "recipient", 320),
-        templateId,
-        templateVariables: variablesFor(payload, definition, { panelUrl, timezone }),
+        subject: rendered.subject,
+        html: rendered.html,
+        text: rendered.text,
         idempotencyKey: requiredString(payload.idempotencyKey, "idempotency_key"),
       });
       response.writeHead(202).end(JSON.stringify({ id: result.id, status: result.status }));
@@ -103,10 +105,10 @@ export function createMailerServer({ service, registry, internalToken, from, pan
 
 export async function start() {
   const service = new StupidMailCenterService({ timeoutMs: 10_000, maxRetries: 3 });
-  const registry = await ensureTemplates(service);
+  const templates = await loadTemplates();
   const server = createMailerServer({
     service,
-    registry,
+    templates,
     internalToken: process.env.STUPID_MAIL_INTERNAL_TOKEN,
     from: process.env.STUPID_MAIL_FROM ?? "noreply@stupidll.com",
     panelUrl: process.env.STUPID_MAIL_PANEL_URL ?? "https://factorio.stupidll.com",

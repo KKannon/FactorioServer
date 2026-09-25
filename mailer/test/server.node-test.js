@@ -14,8 +14,9 @@ test("HTML variables are escaped while text remains readable", () => {
 test("notification endpoint authenticates and delegates to the library service", async (t) => {
   const sent = [];
   const server = createMailerServer({
-    service: { async sendTemplate(input) { sent.push(input); return { id: "mail-1", status: "queued" }; } },
-    registry: { lifecycle: "template-1" }, internalToken: "internal-test-token", from: "noreply@stupidll.com",
+    service: { async sendEmail(input) { sent.push(input); return { id: "mail-1", status: "queued" }; } },
+    templates: { lifecycle: { subject: "{{{ACTION}}}", html: "<p>{{{ACTOR_HTML}}}</p>", text: "{{{ACTOR_TEXT}}}" } },
+    internalToken: "internal-test-token", from: "noreply@stupidll.com",
   });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -28,6 +29,7 @@ test("notification endpoint authenticates and delegates to the library service",
   const accepted = await fetch(`http://127.0.0.1:${address.port}/notify`, { method: "POST", headers: { Authorization: "Bearer internal-test-token" }, body: JSON.stringify(payload) });
   assert.equal(accepted.status, 202);
   assert.equal(sent.length, 1);
-  assert.equal(sent[0].templateId, "template-1");
   assert.equal(sent[0].to, "admin@example.com");
+  assert.match(sent[0].subject, /Inicialização/);
+  assert.equal(sent[0].html, "<p>Admin</p>");
 });

@@ -6,10 +6,9 @@ COPY mailer/package.json mailer/package-lock.json ./
 RUN npm ci --omit=dev
 COPY mailer/src ./src
 COPY mailer/templates ./templates
-RUN mkdir -p /data && chown -R node:node /app /data
+RUN chown -R node:node /app
 
 ENV MAILER_PORT=8080 \
-    MAILER_DATA_DIR=/data \
     MAILER_TEMPLATE_DIR=/app/templates
 
 USER node

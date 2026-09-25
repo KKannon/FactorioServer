@@ -1,6 +1,5 @@
 import path from "node:path";
-import { readFile, rename, writeFile } from "node:fs/promises";
-import { Template } from "lib-stupidmailjavascript";
+import { readFile } from "node:fs/promises";
 
 export const eventDefinitions = Object.freeze({
   StartServer: { template: "lifecycle", action: "Inicialização do servidor solicitada", resource: "Servidor Factorio", status: "Em andamento" },
@@ -30,34 +29,39 @@ const templateDefinitions = Object.freeze({
   system: { name: "factorio-system-change-v1", subject: "[Factorio] {{{ACTION}}}", file: "system" },
 });
 
-export async function ensureTemplates(service, options = {}) {
-  const dataDir = options.dataDir ?? process.env.MAILER_DATA_DIR ?? "/data";
+export async function loadTemplates(options = {}) {
   const templateDir = options.templateDir ?? process.env.MAILER_TEMPLATE_DIR ?? "/app/templates";
-  const registryPath = path.join(dataDir, "template-registry-v1.json");
-  let registry = {};
-  try {
-    registry = JSON.parse(await readFile(registryPath, "utf8"));
-  } catch (error) {
-    if (error?.code !== "ENOENT") throw error;
-  }
-
+  const templates = {};
   for (const [key, definition] of Object.entries(templateDefinitions)) {
-    if (typeof registry[key] === "string" && registry[key]) continue;
-    const template = await Template.fromFiles({
-      name: definition.name,
+    const [html, text] = await Promise.all([
+      readFile(path.join(templateDir, `${definition.file}.html`), "utf8"),
+      readFile(path.join(templateDir, `${definition.file}.txt`), "utf8"),
+    ]);
+    templates[key] = Object.freeze({
       subject: definition.subject,
-      htmlPath: path.join(templateDir, `${definition.file}.html`),
-      textPath: path.join(templateDir, `${definition.file}.txt`),
+      html,
+      text,
     });
-    const created = await service.createTemplate(template);
-    registry[key] = created.id;
-    const temporaryPath = `${registryPath}.tmp`;
-    await writeFile(temporaryPath, `${JSON.stringify(registry, null, 2)}\n`, { mode: 0o600 });
-    await rename(temporaryPath, registryPath);
   }
-  return Object.freeze(registry);
+  return Object.freeze(templates);
 }
 
 export function templateDefinitionFor(event) {
   return eventDefinitions[event];
+}
+
+export function renderTemplate(template, variables) {
+  const render = (source) => source.replace(/\{\{\{([A-Z][A-Z0-9_]*)\}\}\}/g, (_, name) => {
+    if (!(name in variables)) throw new Error(`missing_template_variable_${name}`);
+    return String(variables[name]);
+  });
+  const rendered = {
+    subject: render(template.subject),
+    html: render(template.html),
+    text: render(template.text),
+  };
+  if (/\{\{\{[A-Z][A-Z0-9_]*\}\}\}/.test(Object.values(rendered).join("\n"))) {
+    throw new Error("unresolved_template_variable");
+  }
+  return rendered;
 }
