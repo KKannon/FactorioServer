@@ -2,6 +2,7 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 
 export const eventDefinitions = Object.freeze({
+  MailIntegrationTest: { template: "system", action: "Teste de integração de e-mail", resource: "StupidMailCenter", status: "Concluído" },
   StartServer: { template: "lifecycle", action: "Inicialização do servidor solicitada", resource: "Servidor Factorio", status: "Em andamento" },
   StopServer: { template: "lifecycle", action: "Parada do servidor solicitada", resource: "Servidor Factorio", status: "Em andamento" },
   RestartServer: { template: "lifecycle", action: "Reinicialização do servidor solicitada", resource: "Servidor Factorio", status: "Em andamento" },
