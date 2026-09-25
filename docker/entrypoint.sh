@@ -10,6 +10,7 @@ init_config() {
 
     jq_cmd="${jq_cmd} | .sq_lite_database_file = \"/opt/fsm-data/sqlite.db\""
     jq_cmd="${jq_cmd} | .log_file = \"/opt/fsm-data/factorio-server-manager.log\""
+    jq_cmd="${jq_cmd} | .backup_dir = \"/opt/fsm-data/backups\""
 
     jq "${jq_cmd}" /opt/fsm/conf.json >/opt/fsm-data/conf.json
 }

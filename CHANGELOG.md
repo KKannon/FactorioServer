@@ -11,11 +11,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Players administration page backed by Factorio's native whitelist, admin
   list, and banlist, with live RCON synchronization.
 - Persistent whitelist enable/disable policy, enabled by default.
+- Persistent world backups with manual creation, download, restore, and deletion.
+- World rename support and active-world identification in the saves list.
 
 ### Changed
 - Destructive save and server operations now use non-GET HTTP methods.
 - Save and mod uploads now enforce the configured upload limit and validate file names.
 - Save deletion is blocked while Factorio is running and requires confirmation in the panel.
+- Save deletion and backup restoration create a safety backup before replacing or removing a world.
 - Panel management roles and Factorio in-game administrator roles are now configured separately.
 
 ### Fixed

@@ -168,24 +168,16 @@ func RemoveSave(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["save"]
 
-	save, err := factorio.FindSave(name)
+	save, backup, err := factorio.RemoveSaveWithBackup(name)
 	if err != nil {
-		resp = fmt.Sprintf("Error finding save {%s}: %s", name, err)
+		resp = fmt.Sprintf("Could not safely remove save {%s}: %s", name, err)
 		log.Println(resp)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	err = save.Remove()
-	if err != nil {
-		resp = fmt.Sprintf("Error removing save {%s}: %s", name, err)
-		log.Println(resp)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	// save was removed
-	resp = fmt.Sprintf("Removed save: %s", save.Name)
+	resp = fmt.Sprintf("Removed save: %s. Safety backup: %s", save.Name, backup.Name)
 }
 
 // Launches Factorio server binary with --create flag to create save

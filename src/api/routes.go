@@ -155,6 +155,7 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 var managementRoutes = map[string]bool{
 	"LogTail": true, "LoadConfig": true, "FactorioVersion": true, "GetServerSettings": true,
 	"UploadSave": true, "RemoveSave": true, "CreateSave": true, "LoadModsFromSave": true,
+	"CreateSaveBackup": true, "RestoreSaveBackup": true, "RemoveSaveBackup": true, "RenameSave": true,
 	"StartServer": true, "StopServer": true, "KillServer": true, "UpdateServerSettings": true,
 	"RestartServer":          true,
 	"InstallFactorioVersion": true,
@@ -208,6 +209,42 @@ var apiRoutes = Routes{
 		"POST",
 		"/saves/mods",
 		LoadModsFromSaveHandler,
+		true,
+	}, {
+		"ListSaveBackups",
+		"GET",
+		"/saves/backups",
+		ListSaveBackups,
+		false,
+	}, {
+		"DLBackup",
+		"GET",
+		"/saves/backups/{backup}/download",
+		DLBackup,
+		false,
+	}, {
+		"CreateSaveBackup",
+		"POST",
+		"/saves/{save}/backup",
+		CreateSaveBackup,
+		true,
+	}, {
+		"RestoreSaveBackup",
+		"POST",
+		"/saves/backups/{backup}/restore",
+		RestoreSaveBackup,
+		true,
+	}, {
+		"RemoveSaveBackup",
+		"DELETE",
+		"/saves/backups/{backup}",
+		RemoveSaveBackup,
+		false,
+	}, {
+		"RenameSave",
+		"POST",
+		"/saves/{save}/rename",
+		RenameSave,
 		true,
 	}, {
 		"LogTail",

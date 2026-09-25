@@ -42,6 +42,11 @@ banlist. When the game is running changes are also sent through RCON; if runtime
 synchronization fails, the file change is rolled back. Whitelist enforcement is
 enabled by default and its on/off policy is stored in the Factorio config volume.
 
+The Worlds page imports and exports native Factorio `.zip` saves and stores
+backups under `/opt/fsm-data/backups`. Creating, restoring, renaming, and deleting
+worlds is blocked while Factorio is running. Delete and restore operations first
+create a safety backup, so they never silently destroy the only existing copy.
+
 The panel listens on TCP port `3101` by default and Factorio listens on UDP port
 `34197`. These can be overridden with `PANEL_PORT`, `PANEL_BIND_ADDRESS`, and
 `FACTORIO_PORT`. Because data is bind-mounted from the sibling `data` directory,

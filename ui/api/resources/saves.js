@@ -13,6 +13,14 @@ export default {
         const response = await client.delete(`/api/saves/rm/${encodeURIComponent(save.name)}`);
         return response.data;
     },
+    rename: async (save, name) => (await client.post(`/api/saves/${encodeURIComponent(save.name)}/rename`, {name})).data,
+    backups: {
+        list: async () => (await client.get('/api/saves/backups')).data,
+        create: async save => (await client.post(`/api/saves/${encodeURIComponent(save.name)}/backup`)).data,
+        restore: async backup => (await client.post(`/api/saves/backups/${encodeURIComponent(backup.name)}/restore`)).data,
+        delete: async backup => (await client.delete(`/api/saves/backups/${encodeURIComponent(backup.name)}`)).data,
+        download: backup => `/api/saves/backups/${encodeURIComponent(backup.name)}/download`,
+    },
     create: async (name) => {
         const response = await client.post(`/api/saves/create/${encodeURIComponent(name)}`);
         return response.data;

@@ -8,7 +8,7 @@ This tool runs on a Factorio server and allows management of the Factorio server
 
 ## Features
 * Allows control of the Factorio Server, starting and stopping the Factorio binary.
-* Allows the management of save files, upload, download and delete saves.
+* Manages native save files with import, export, rename, backup, restore, and safe deletion.
 * Manage installed mods, upload new ones and more
 * Manage modpacks, so it is easier to play with different configurations
 * Allow viewing of the server logs and current configuration.
