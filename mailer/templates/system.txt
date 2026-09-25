@@ -1,0 +1,8 @@
+Factorio Server Manager — Alteração do sistema
+
+{{{ACTION}}}
+Recurso: {{{RESOURCE_TEXT}}}
+Status: {{{STATUS}}}
+Executado por {{{ACTOR_TEXT}}} em {{{TIME_TEXT}}}.
+
+Painel: {{{PANEL_URL}}}

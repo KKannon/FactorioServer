@@ -1,0 +1,13 @@
+{
+  "name": "factorio-server-mailer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "lib-stupidmailjavascript": "file:../vendor/lib-stupidmailjavascript-0.1.0.tgz"
+  }
+}

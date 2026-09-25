@@ -57,6 +57,7 @@ func NewRouter() *mux.Router {
 			router = apiRouter
 		}
 		var handler http.Handler = route.HandlerFunc
+		handler = NotificationMiddleware(route.Name, handler)
 		if managementRoutes[route.Name] {
 			handler = RequireManagementRole(handler)
 		}

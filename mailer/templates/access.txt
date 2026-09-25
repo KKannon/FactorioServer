@@ -1,0 +1,8 @@
+Factorio Server Manager — Alteração de acesso
+
+{{{ACTION}}}
+Status: {{{STATUS}}}
+Executado por {{{ACTOR_TEXT}}} ({{{ROLE_TEXT}}}) em {{{TIME_TEXT}}}.
+
+Jogadores: {{{PANEL_URL}}}/players
+Se esta alteração não era esperada, revise imediatamente os acessos.

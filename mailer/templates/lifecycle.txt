@@ -1,0 +1,7 @@
+Factorio Server Manager
+
+{{{ACTION}}}
+Status: {{{STATUS}}}
+Solicitado por {{{ACTOR_TEXT}}} ({{{ROLE_TEXT}}}) em {{{TIME_TEXT}}}.
+
+Painel: {{{PANEL_URL}}}

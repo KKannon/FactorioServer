@@ -8,6 +8,8 @@ services:
     image: factorio-server-manager:local
     container_name: factorio-server-manager
     restart: unless-stopped
+    depends_on:
+      - mailer
     environment:
       FACTORIO_VERSION: ${FACTORIO_VERSION:-stable}
       RCON_PASS: ${RCON_PASS:-}
@@ -23,6 +25,8 @@ services:
       STUPID_AUTHENTICATOR_USERINFO_URL: ${STUPID_AUTHENTICATOR_USERINFO_URL:-https://authenticator.stupidll.com/o/userinfo/}
       STUPID_AUTHENTICATOR_JWKS_URL: ${STUPID_AUTHENTICATOR_JWKS_URL:-https://authenticator.stupidll.com/o/.well-known/jwks.json}
       STUPID_AUTHENTICATOR_LOGOUT_URL: ${STUPID_AUTHENTICATOR_LOGOUT_URL:-https://authenticator.stupidll.com/o/logout/}
+      STUPID_MAILER_URL: http://mailer:8080
+      STUPID_MAIL_INTERNAL_TOKEN: ${STUPID_MAIL_INTERNAL_TOKEN:?Set STUPID_MAIL_INTERNAL_TOKEN in .env}
     ports:
       - "${PANEL_BIND_ADDRESS:-0.0.0.0}:${PANEL_PORT:-3101}:80/tcp"
       - "${FACTORIO_PORT:-34197}:34197/udp"
@@ -32,4 +36,31 @@ services:
       - "${FACTORIO_DATA_DIR:-../data}/mods:/opt/factorio/mods"
       - "${FACTORIO_DATA_DIR:-../data}/config:/opt/factorio/config"
       - "${FACTORIO_DATA_DIR:-../data}/mod_packs:/opt/fsm/mod_packs"
+
+  mailer:
+    build:
+      context: .
+      dockerfile: mailer/Dockerfile
+    image: factorio-server-mailer:local
+    restart: unless-stopped
+    environment:
+      STUPID_MAIL_CENTER_API_KEY: ${STUPID_MAIL_CENTER_API_KEY:?Set STUPID_MAIL_CENTER_API_KEY in .env}
+      STUPID_MAIL_INTERNAL_TOKEN: ${STUPID_MAIL_INTERNAL_TOKEN:?Set STUPID_MAIL_INTERNAL_TOKEN in .env}
+      STUPID_MAIL_FROM: ${STUPID_MAIL_FROM:-noreply@stupidll.com}
+      STUPID_MAIL_PANEL_URL: ${STUPID_MAIL_PANEL_URL:-https://factorio.stupidll.com}
+      TZ: ${TZ:-America/Sao_Paulo}
+    volumes:
+      - mailer-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
+
+volumes:
+  mailer-data:
 

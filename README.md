@@ -14,6 +14,8 @@ This tool runs on a Factorio server and allows management of the Factorio server
 * Manage modpacks, so it is easier to play with different configurations
 * Allow viewing of the server logs and current configuration.
 * Authentication for protecting against unauthorized users
+* Transactional email notifications for server lifecycle, world backups,
+  player access, version, and settings changes.
 * Available as a Docker container
 
 #### Manage Factorio Server
