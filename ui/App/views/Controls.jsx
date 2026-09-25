@@ -11,9 +11,10 @@ import {t} from "../../identity/preferences";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 
-const Controls = ({serverStatus, identity}) => {
+const Controls = ({serverStatus, identity, onServerStatusChange}) => {
 
     const factorioVersion = serverStatus.fac_version ? serverStatus.fac_version : t('unknown');
+    const normalizedFactorioVersion = factorioVersion.replace(/\.0$/, '');
     const lifecycleState = serverStatus.state || (serverStatus.running ? 'running' : 'stopped');
     const lifecycleLabel = t(lifecycleState);
     const isTransitioning = lifecycleState === 'starting' || lifecycleState === 'stopping';
@@ -24,7 +25,10 @@ const Controls = ({serverStatus, identity}) => {
     const [isStarting, setIsStarting] = useState(false);
     const [isKilling, setIsKilling] = useState(false);
     const [isRestarting, setIsRestarting] = useState(false);
-    const [versionTarget, setVersionTarget] = useState('stable');
+    const [versionTarget, setVersionTarget] = useState(normalizedFactorioVersion);
+    const [versionCatalog, setVersionCatalog] = useState({versions: [], stable: '', latest: ''});
+    const [versionsLoading, setVersionsLoading] = useState(true);
+    const [versionsError, setVersionsError] = useState(false);
     const [isChangingVersion, setIsChangingVersion] = useState(false);
 
     const { handleSubmit, reset, register, formState: {errors} } = useForm();
@@ -70,42 +74,48 @@ const Controls = ({serverStatus, identity}) => {
             await Swal.fire({icon: 'error', title: t('version.invalidTitle'), text: t('version.invalidText')});
             return;
         }
-        const normalizedCurrent = factorioVersion.replace(/\.0$/, '');
-        if (requested === normalizedCurrent) {
+        if (requested === normalizedFactorioVersion) {
             await Swal.fire({icon: 'info', title: t('version.sameTitle'), text: t('version.sameText', {version: factorioVersion})});
             return;
         }
-        const confirmation = await Swal.fire({
-            icon: 'warning',
-            title: t('version.warningTitle'),
-            html: `<p>${t('version.warningIntro', {current: factorioVersion, requested})}</p><ul style="text-align:left;margin:1rem 1.5rem"><li>${t('version.warningSave')}</li><li>${t('version.warningMods')}</li><li>${t('version.warningDowngrade')}</li></ul><strong>${t('version.warningBackup')}</strong>`,
-            showCancelButton: true,
-            confirmButtonText: t('version.confirm'),
-            cancelButtonText: t('version.cancel'),
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#6b7280',
-            buttonsStyling: false,
-            customClass: {
-                popup: 'version-warning-popup',
-                htmlContainer: 'version-warning-content',
-                actions: 'version-warning-actions',
-                confirmButton: 'version-warning-button version-warning-confirm',
-                cancelButton: 'version-warning-button version-warning-cancel',
-            },
-            showLoaderOnConfirm: true,
-            allowOutsideClick: () => !Swal.isLoading(),
-            preConfirm: async () => {
-                try { return await server.installVersion(requested); }
-                catch (error) {
-                    Swal.showValidationMessage(error.response?.data || t('version.failed'));
-                    return false;
-                }
-            },
-        });
-        if (!confirmation.isConfirmed) return;
         setIsChangingVersion(true);
-        await Swal.fire({icon: 'success', title: t('version.successTitle'), text: t('version.successText', {version: confirmation.value.installed_version})});
-        window.location.reload();
+        let confirmation;
+        try {
+            confirmation = await Swal.fire({
+                icon: 'warning',
+                title: t('version.warningTitle'),
+                html: `<p>${t('version.warningIntro', {current: factorioVersion, requested})}</p><ul style="text-align:left;margin:1rem 1.5rem"><li>${t('version.warningSave')}</li><li>${t('version.warningMods')}</li><li>${t('version.warningDowngrade')}</li></ul><strong>${t('version.warningBackup')}</strong>`,
+                showCancelButton: true,
+                confirmButtonText: t('version.confirm'),
+                cancelButtonText: t('version.cancel'),
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6b7280',
+                buttonsStyling: false,
+                customClass: {
+                    popup: 'version-warning-popup',
+                    htmlContainer: 'version-warning-content',
+                    actions: 'version-warning-actions',
+                    confirmButton: 'version-warning-button version-warning-confirm',
+                    cancelButton: 'version-warning-button version-warning-cancel',
+                },
+                showLoaderOnConfirm: true,
+                allowOutsideClick: () => !Swal.isLoading(),
+                preConfirm: async () => {
+                    try { return await server.installVersion(requested); }
+                    catch (error) {
+                        Swal.showValidationMessage(error.response?.data || t('version.failed'));
+                        return false;
+                    }
+                },
+            });
+        } finally {
+            setIsChangingVersion(false);
+        }
+        if (!confirmation.isConfirmed) return;
+        const installedVersion = confirmation.value.installed_version;
+        setVersionTarget(installedVersion.replace(/\.0$/, ''));
+        onServerStatusChange?.({fac_version: installedVersion, last_error: ''});
+        await Swal.fire({icon: 'success', title: t('version.successTitle'), text: t('version.successText', {version: installedVersion})});
     };
 
     useEffect(() => {
@@ -118,6 +128,32 @@ const Controls = ({serverStatus, identity}) => {
                 reset();
             });
     }, [])
+
+    useEffect(() => {
+        let active = true;
+        setVersionsLoading(true);
+        server.versions()
+            .then(catalog => {
+                if (!active) return;
+                setVersionCatalog({
+                    versions: Array.isArray(catalog?.versions) ? catalog.versions : [],
+                    stable: catalog?.stable || '',
+                    latest: catalog?.latest || '',
+                });
+                setVersionsError(false);
+            })
+            .catch(() => {
+                if (active) setVersionsError(true);
+            })
+            .finally(() => {
+                if (active) setVersionsLoading(false);
+            });
+        return () => { active = false; };
+    }, []);
+
+    const exactVersions = versionCatalog.versions.includes(normalizedFactorioVersion)
+        ? versionCatalog.versions
+        : [normalizedFactorioVersion, ...versionCatalog.versions];
 
     return (
         <>
@@ -179,10 +215,13 @@ const Controls = ({serverStatus, identity}) => {
                                 <div className="font-bold">{t('controls.version')}</div>
                                 <div>{factorioVersion}</div>
                                 {canManage && <div className="mt-2">
-                                    <input aria-label={t('version.target')} list="factorio-version-options" className="shadow border w-full py-2 px-3 text-black" value={versionTarget} onChange={event => setVersionTarget(event.target.value)} placeholder="2.0.77"/>
-                                    <datalist id="factorio-version-options"><option value="stable"/><option value="latest"/></datalist>
+                                    <select aria-label={t('version.target')} className="shadow border w-full py-2 px-3 text-black" value={versionTarget} onChange={event => setVersionTarget(event.target.value)} disabled={versionsLoading || isChangingVersion}>
+                                        <option value="stable">{t('version.stable', {version: versionCatalog.stable || '—'})}</option>
+                                        <option value="latest">{t('version.latest', {version: versionCatalog.latest || '—'})}</option>
+                                        {exactVersions.map(version => <option value={version} key={version}>{version === normalizedFactorioVersion ? t('version.installed', {version}) : version}</option>)}
+                                    </select>
                                     <Button onClick={changeVersion} isLoading={isChangingVersion} size="sm" className="mt-2 w-full">{t('version.change')}</Button>
-                                    <p className="text-xs mt-1 opacity-80">{t('version.help')}</p>
+                                    <p className="text-xs mt-1 opacity-80">{versionsLoading ? t('version.loading') : versionsError ? t('version.listFailed') : t('version.help')}</p>
                                 </div>}
                             </div>
                             <div className="lg:w-1/5 mb-2">

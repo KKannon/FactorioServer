@@ -9,6 +9,10 @@ export default {
         const response = await client.post('/api/server/version', {version});
         return response.data;
     },
+    versions: async () => {
+        const response = await client.get('/api/server/versions');
+        return response.data;
+    },
     status: async () => {
         const response = await client.get('/api/server/status');
         return response.data;

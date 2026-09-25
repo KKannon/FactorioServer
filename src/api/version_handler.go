@@ -18,6 +18,17 @@ type installVersionResponse struct {
 	InstalledVersion string `json:"installed_version"`
 }
 
+func ListFactorioVersions(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	catalog, err := factorio.AvailableFactorioVersions(r.Context())
+	if err != nil {
+		log.Printf("Could not load Factorio release catalog: %v", err)
+		http.Error(w, "Could not load the Factorio version list", http.StatusBadGateway)
+		return
+	}
+	WriteResponse(w, catalog)
+}
+
 func InstallFactorioVersion(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	var request installVersionRequest

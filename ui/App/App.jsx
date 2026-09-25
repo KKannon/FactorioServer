@@ -19,6 +19,14 @@ import ServerStatusGate from "./components/ServerStatusGate";
 import Players from "./views/Players";
 import Monitoring from "./views/Monitoring";
 
+const ProtectedRoute = ({identity}) => identity
+    ? <Outlet/>
+    : <Navigate to="/login" state={{from: window.location.pathname}}/>;
+
+const ManagementRoute = ({identity}) => identity?.can_manage
+    ? <Outlet/>
+    : <Navigate to="/" replace/>;
+
 const App = () => {
     const [identity, setIdentity] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -27,6 +35,10 @@ const App = () => {
     const [serverStatusError, setServerStatusError] = useState(null);
     const [serverStatusRequest, setServerStatusRequest] = useState(0);
     const [lastProfileSync, setLastProfileSync] = useState(0);
+
+    const patchServerStatus = useCallback(patch => {
+        setServerStatus(current => current ? {...current, ...patch} : current);
+    }, []);
 
     const acceptIdentity = useCallback(value => {
         if (!value?.public_user_id) return;
@@ -110,13 +122,11 @@ const App = () => {
         return () => window.removeEventListener('fsm:unauthorized', onUnauthorized);
     }, []);
 
-    const ProtectedRoute = () => identity ? <Outlet/> : <Navigate to="/login" state={{from: window.location.pathname}}/>;
-    const ManagementRoute = () => identity?.can_manage ? <Outlet/> : <Navigate to="/" replace/>;
     if (loading) return <div className="identity-loading">{t('loading')}</div>;
 
     return <BrowserRouter><Routes>
         <Route path="login" element={<Login identity={identity}/>}/>
-        <Route element={<ProtectedRoute/>}>
+        <Route element={<ProtectedRoute identity={identity}/> }>
             <Route element={<Layout identity={identity} handleLogout={userResource.logout} serverStatus={serverStatus}/> }>
                 <Route element={<ServerStatusGate
                     status={serverStatus}
@@ -124,10 +134,10 @@ const App = () => {
                     error={serverStatusError}
                     onRetry={() => setServerStatusRequest(value => value + 1)}
                 />}>
-                    <Route index element={<Controls identity={identity} serverStatus={serverStatus}/>}/>
+                    <Route index element={<Controls identity={identity} serverStatus={serverStatus} onServerStatusChange={patchServerStatus}/>}/>
                     <Route path="saves" element={<Saves canManage={identity?.can_manage} serverStatus={serverStatus}/>}/>
                     <Route path="players" element={<Players canManage={identity?.can_manage} serverStatus={serverStatus}/>}/>
-                    <Route element={<ManagementRoute/>}>
+                    <Route element={<ManagementRoute identity={identity}/> }>
                         <Route path="mods" element={<Mods serverStatus={serverStatus}/>}/>
                         <Route path="server-settings" element={<ServerSettings serverStatus={serverStatus}/>}/>
                         <Route path="game-settings" element={<GameSettings serverStatus={serverStatus}/>}/>

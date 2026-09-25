@@ -344,6 +344,12 @@ var apiRoutes = Routes{
 		FactorioVersion,
 		false,
 	}, {
+		"ListFactorioVersions",
+		"GET",
+		"/server/versions",
+		ListFactorioVersions,
+		false,
+	}, {
 		"InstallFactorioVersion",
 		"POST",
 		"/server/version",
