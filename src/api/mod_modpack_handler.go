@@ -139,6 +139,28 @@ func ModPackDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	resp = modPackName
 }
 
+func ModPackDuplicateHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	err, modPackMap, sourceName, resp := ReadModPackRequest(w, r)
+	if err != nil {
+		WriteResponse(w, resp)
+		return
+	}
+	var request struct {
+		Name string `json:"name"`
+	}
+	if resp, err = ReadFromRequestBody(w, r, &request); err != nil {
+		WriteResponse(w, resp)
+		return
+	}
+	if err = modPackMap.DuplicateModPack(sourceName, request.Name); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		WriteResponse(w, map[string]string{"error": err.Error()})
+		return
+	}
+	WriteResponse(w, modPackMap.ListInstalledModPacks())
+}
+
 func ModPackDownloadHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var resp interface{}
@@ -151,6 +173,7 @@ func ModPackDownloadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", modPackName))
+	w.Header().Set("Content-Type", "application/zip")
 
 	zipWriter := zip.NewWriter(w)
 	defer zipWriter.Close()
@@ -204,7 +227,6 @@ func ModPackDownloadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/zip;charset=UTF-8")
 }
 
 func ModPackLoadHandler(w http.ResponseWriter, r *http.Request) {

@@ -85,6 +85,18 @@ func ModToggleHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+	if data.Name == "base" {
+		resp = map[string]interface{}{"error": "the base mod cannot be disabled"}
+		w.WriteHeader(http.StatusConflict)
+		return
+	}
+	for _, mod := range mods.ListInstalledMods().ModsResult {
+		if mod.Name == data.Name && !mod.Enabled && !mod.Compatibility {
+			resp = map[string]interface{}{"error": "the mod cannot be enabled until compatibility issues are resolved", "issues": mod.CompatibilityIssues, "dependencies": mod.DependencyStatus}
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+	}
 
 	err, resp = mods.ModSimpleList.ToggleMod(data.Name)
 	if err != nil {
@@ -117,6 +129,11 @@ func ModDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	modList, resp, err := CreateNewMods(w)
 	if err != nil {
+		return
+	}
+	if requiredBy := modList.EnabledRequiredBy(data.Name); len(requiredBy) > 0 {
+		w.WriteHeader(http.StatusConflict)
+		resp = map[string]interface{}{"error": "the mod is required by enabled mods", "required_by": requiredBy}
 		return
 	}
 
@@ -268,6 +285,8 @@ func ModUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 func ModDownloadHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"all_installed_mods.zip\"")
 
 	zipWriter := zip.NewWriter(w)
 	defer zipWriter.Close()
@@ -327,9 +346,6 @@ func ModDownloadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writerHeader := w.Header()
-	writerHeader.Set("Content-Type", "application/zip;charset=UTF-8")
-	writerHeader.Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", "all_installed_mods.zip"))
 }
 
 // LoadModsFromSaveHandler returns JSON response with the found mods

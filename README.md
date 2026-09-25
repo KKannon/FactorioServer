@@ -10,8 +10,9 @@ This tool runs on a Factorio server and allows management of the Factorio server
 * Allows control of the Factorio Server, starting and stopping the Factorio binary.
 * Manages native save files with import, export, rename, backup, restore, and safe deletion.
 * Creates worlds from native Factorio presets with simple controls, complete JSON settings, and an in-panel map preview.
-* Manage installed mods, upload new ones and more
-* Manage modpacks, so it is easier to play with different configurations
+* Manage installed mods with dependency and Factorio-version compatibility checks.
+* Import multiple mod archives at once and safely enable, update, export, or remove them.
+* Create, duplicate, export, and load modpacks for reusable server configurations.
 * Allow viewing of the server logs and current configuration.
 * Authentication for protecting against unauthorized users
 * Transactional email notifications for server lifecycle, world backups,

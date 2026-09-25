@@ -87,6 +87,11 @@ const mods = {
             const response = await client.get(`/api/mods/packs/${encodeURIComponent(name)}/download`);
             return response.data;
         },
+        downloadURL: name => `/api/mods/packs/${encodeURIComponent(name)}/download`,
+        duplicate: async (source, name) => {
+            const response = await client.post(`/api/mods/packs/${encodeURIComponent(source)}/duplicate`, {name});
+            return response.data;
+        },
         load: async name => {
             const response = await client.post(`/api/mods/packs/${encodeURIComponent(name)}/load`);
             return response.data;

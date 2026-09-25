@@ -21,7 +21,10 @@ type Mods struct {
 }
 type ModsResult struct {
 	ModInfo
-	Enabled bool `json:"enabled"`
+	Enabled             bool                  `json:"enabled"`
+	FactorioCompatible  bool                  `json:"factorio_compatible"`
+	DependencyStatus    []ModDependencyStatus `json:"dependency_status"`
+	CompatibilityIssues []string              `json:"compatibility_issues"`
 }
 type ModsResultList struct {
 	ModsResult []ModsResult `json:"mods"`
@@ -59,7 +62,9 @@ func (mods *Mods) ListInstalledMods() ModsResultList {
 		modsResult.Title = modInfo.Title
 		modsResult.Version = modInfo.Version
 		modsResult.FactorioVersion = modInfo.FactorioVersion
+		modsResult.Dependencies = append([]string(nil), modInfo.Dependencies...)
 		modsResult.Compatibility = modInfo.Compatibility
+		modsResult.FactorioCompatible = modInfo.Compatibility
 
 		for _, simpleMod := range mods.ModSimpleList.Mods {
 			if simpleMod.Name == modsResult.Name {
@@ -70,6 +75,8 @@ func (mods *Mods) ListInstalledMods() ModsResultList {
 
 		result.ModsResult = append(result.ModsResult, modsResult)
 	}
+
+	mods.applyDependencyStatus(&result)
 
 	return result
 }

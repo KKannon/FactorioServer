@@ -69,6 +69,12 @@ Map previews are also rendered by the installed Factorio binary and do not
 create or modify a save.
 Custom presets are stored under `/opt/fsm-data/map-presets`.
 
+The Mods page parses native Factorio dependency declarations and reports
+missing, disabled, version-mismatched, and conflicting dependencies before a
+mod is enabled. An enabled mod cannot lose one of its required dependencies.
+Modpacks can be created from the active installation, duplicated, exported,
+loaded, and removed while the game server is stopped.
+
 The panel listens on TCP port `3101` by default and Factorio listens on UDP port
 `34197`. These can be overridden with `PANEL_PORT`, `PANEL_BIND_ADDRESS`, and
 `FACTORIO_PORT`. Because data is bind-mounted from the sibling `data` directory,

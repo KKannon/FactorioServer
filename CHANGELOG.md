@@ -22,6 +22,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   for server lifecycle, worlds/backups, player access, and system changes.
 - Idempotent welcome email on each OIDC user's first authenticated access, with
   persistent delivery state and automatic retry.
+- Native mod dependency analysis with required, optional, hidden, incompatible,
+  and load-order dependency support.
+- Modpack export and duplication actions.
 
 ### Changed
 - Destructive save and server operations now use non-GET HTTP methods.
@@ -29,6 +32,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Save deletion is blocked while Factorio is running and requires confirmation in the panel.
 - Save deletion and backup restoration create a safety backup before replacing or removing a world.
 - Panel management roles and Factorio in-game administrator roles are now configured separately.
+- Incompatible mods cannot be enabled, and mods required by enabled mods cannot be deleted.
+- Mod and modpack actions now expose compatibility details and translated confirmations.
 
 ### Fixed
 - Invalid mod archives now return an error instead of terminating the manager process.

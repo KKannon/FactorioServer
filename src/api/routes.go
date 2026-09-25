@@ -167,7 +167,7 @@ var managementRoutes = map[string]bool{
 	"ModPortalInstallMod": true, "ModPortalLogin": true, "ModPortalLogout": true, "ModPortalInstallMultiple": true,
 	"ListInstalledMods": true, "ToggleMod": true, "DeleteMod": true, "DeleteAllMods": true, "UpdateMod": true, "UploadMod": true, "DownloadMods": true,
 	"ModPacksList": true, "ModPackDownload": true, "ModPackListMods": true,
-	"ModPackCreate": true, "ModPackDelete": true, "LoadModPack": true,
+	"ModPackCreate": true, "ModPackDelete": true, "ModPackDuplicate": true, "LoadModPack": true,
 	"ModPackToggleMod": true, "ModPackDeleteMod": true, "ModPackDeleteAllMod": true,
 	"ModPackUpdateMod": true, "ModPackUploadMod": true, "ModPackModPortalInstallMod": true,
 	"ModPackModPortalInstallMultiple": true,
@@ -523,6 +523,12 @@ var apiRoutes = Routes{
 		"POST",
 		"/mods/packs/{modpack}/delete",
 		ModPackDeleteHandler,
+		false,
+	}, {
+		"ModPackDuplicate",
+		"POST",
+		"/mods/packs/{modpack}/duplicate",
+		ModPackDuplicateHandler,
 		false,
 	}, {
 		"ModPackDownload",

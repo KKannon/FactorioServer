@@ -2,11 +2,13 @@ package factorio
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/OpenFactorioServerManager/factorio-server-manager/bootstrap"
 )
@@ -93,8 +95,76 @@ func (modPackMap *ModPackMap) ListInstalledModPacks() []ModPackResult {
 
 		list = append(list, modPackResult)
 	}
+	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
 
 	return list
+}
+
+func (modPackMap *ModPackMap) DuplicateModPack(sourceName string, destinationName string) error {
+	if err := ValidateFileName(sourceName); err != nil {
+		return err
+	}
+	if err := ValidateFileName(destinationName); err != nil {
+		return err
+	}
+	if !modPackMap.CheckModPackExists(sourceName) {
+		return fmt.Errorf("modpack %q does not exist", sourceName)
+	}
+	if modPackMap.CheckModPackExists(destinationName) {
+		return fmt.Errorf("modpack %q already exists", destinationName)
+	}
+	config := bootstrap.GetConfig()
+	sourceDir, err := ResolveDataPath(config.FactorioModPackDir, sourceName)
+	if err != nil {
+		return err
+	}
+	destinationDir, err := ResolveDataPath(config.FactorioModPackDir, destinationName)
+	if err != nil {
+		return err
+	}
+	if err = os.Mkdir(destinationDir, 0755); err != nil {
+		return err
+	}
+	complete := false
+	defer func() {
+		if !complete {
+			_ = os.RemoveAll(destinationDir)
+		}
+	}()
+	entries, err := os.ReadDir(sourceDir)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
+			continue
+		}
+		if err = copyModPackFile(filepath.Join(sourceDir, entry.Name()), filepath.Join(destinationDir, entry.Name())); err != nil {
+			return err
+		}
+	}
+	if err = modPackMap.reload(); err != nil {
+		return err
+	}
+	complete = true
+	return nil
+}
+
+func copyModPackFile(sourcePath string, destinationPath string) error {
+	source, err := os.Open(sourcePath)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+	destination, err := os.OpenFile(destinationPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	if _, err = io.Copy(destination, source); err != nil {
+		_ = destination.Close()
+		return err
+	}
+	return destination.Close()
 }
 
 func (modPackMap *ModPackMap) CreateModPack(modPackName string) error {

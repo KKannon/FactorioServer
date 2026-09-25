@@ -13,6 +13,7 @@ import CreateModPack from "./components/CreateModPack";
 import ModPack from "./components/ModPack";
 import ModList from "./components/ModList";
 import {t} from "../../../identity/preferences";
+import Swal from "sweetalert2";
 
 const Mods = ({serverStatus}) => {
 
@@ -25,10 +26,11 @@ const Mods = ({serverStatus}) => {
     const [updatableMods, setUpdatableMods] = useState([]);
 
     const addUpdatableMod = mod => {
-        setUpdatableMods(mods => [...mods, mod])
+        setUpdatableMods(mods => mods.some(existing => existing.modName === mod.modName) ? mods : [...mods, mod])
     };
 
     const fetchInstalledMods = () => {
+        setUpdatableMods([]);
         modsResource.installed()
             .then(setInstalledMods);
     };
@@ -38,7 +40,9 @@ const Mods = ({serverStatus}) => {
             .then(setModPacks)
     }
 
-    const deleteAllMods = () => {
+    const deleteAllMods = async () => {
+        const confirmation = await Swal.fire({icon: 'warning', title: t('mods.deleteAllTitle'), text: t('mods.deleteAllText'), showCancelButton: true, confirmButtonText: t('mods.deleteAll'), cancelButtonText: t('controls.cancel'), confirmButtonColor: '#dc2626'});
+        if (!confirmation.isConfirmed) return;
         setIsDeletingAllMods(true);
         modsResource.deleteAll()
             .then(fetchInstalledMods)
@@ -92,7 +96,9 @@ const Mods = ({serverStatus}) => {
             .then(fetchInstalledMods)
     }
 
-    const deleteMod = modName => {
+    const deleteMod = async modName => {
+        const confirmation = await Swal.fire({icon: 'warning', title: t('mods.deleteTitle'), text: t('mods.deleteText', {name: modName}), showCancelButton: true, confirmButtonText: t('saves.deleteConfirm'), cancelButtonText: t('controls.cancel'), confirmButtonColor: '#dc2626'});
+        if (!confirmation.isConfirmed) return;
         return modsResource
             .delete(modName)
             .then(fetchInstalledMods)
@@ -145,14 +151,15 @@ const Mods = ({serverStatus}) => {
                 actions={
                     <>
                         {
-                            !disabled &&
+                            !disabled && <>
                             <Button size="sm" className="mr-2" type="danger" isLoading={isDeletingAllMods}
-                                    onClick={deleteAllMods}>Delete all Mods</Button> &&
+                                    onClick={deleteAllMods}>{t('mods.deleteAll')}</Button>
                             <Button size="sm" className="mr-2" isLoading={isUpdatingAllMods}
-                                    onClick={updateAllMods}>Update all Mods</Button>
+                                    onClick={updateAllMods}>{t('mods.updateAll')}</Button>
+                            </>
                         }
                         <a className="bg-gray-light py-1 px-2 hover:glow-orange hover:bg-orange inline-block accentuated text-black font-bold"
-                           href={modsResource.downloadAllURL}>Download all Mods</a>
+                           href={modsResource.downloadAllURL}>{t('mods.downloadAll')}</a>
                     </>
                 }
             />

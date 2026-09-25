@@ -44,6 +44,11 @@ html[data-compact="true"] .container { max-width: 90rem; }
 .map-unavailable { display: block; text-align: center; opacity: .65; }
 .map-asset-credit { margin-top: .75rem; font-size: .75rem; opacity: .65; text-align: right; }
 .map-asset-credit a { color: var(--accent-color); text-decoration: underline; }
+.mod-row td { padding-top: .65rem; padding-bottom: .65rem; border-top: 1px solid rgba(255,255,255,.08); vertical-align: middle; }
+.mod-status-ok { color: #77d47c; font-weight: 600; }
+.mod-status-error { color: #ff8585; font-weight: 600; }
+.mod-details { padding: .8rem 1rem 1rem 2rem; background: rgba(0,0,0,.2); border-bottom: 1px solid rgba(255,255,255,.08); }
+.mod-details code { color: #ffe6c0; }
 
 /* Keep both version confirmation actions visible above the viewport fold. */
 .version-warning-popup { max-height: calc(100vh - 1.25rem); overflow: hidden; }
