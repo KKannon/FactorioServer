@@ -4,5 +4,6 @@
 	"cookie_encryption_key": "",
 	"settings_file": "server-settings.json",
 	"backup_dir": "backups",
+	"map_preset_dir": "map-presets",
 	"log_file": "factorio-server-manager.log"
 }

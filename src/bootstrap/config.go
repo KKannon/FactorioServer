@@ -36,6 +36,7 @@ type Config struct {
 	FactorioDir             string `json:"factorio_dir,omitempty"`
 	FactorioSavesDir        string `json:"saves_dir,omitempty"`
 	FactorioBackupDir       string `json:"backup_dir,omitempty"`
+	MapPresetDir            string `json:"map_preset_dir,omitempty"`
 	FactorioBaseModDir      string `json:"basemod_dir,omitempty"`
 	FactorioModsDir         string `json:"mods_dir,omitempty"`
 	FactorioModPackDir      string `json:"mod_pack_dir,omitempty"`
@@ -188,6 +189,11 @@ func (config *Config) loadServerConfig() {
 	} else if !filepath.IsAbs(config.FactorioBackupDir) {
 		config.FactorioBackupDir = filepath.Join(filepath.Dir(config.ConfFile), config.FactorioBackupDir)
 	}
+	if config.MapPresetDir == "" {
+		config.MapPresetDir = filepath.Join(filepath.Dir(config.ConfFile), "map-presets")
+	} else if !filepath.IsAbs(config.MapPresetDir) {
+		config.MapPresetDir = filepath.Join(filepath.Dir(config.ConfFile), config.MapPresetDir)
+	}
 
 	if config.FactorioBaseModDir == "" {
 		config.FactorioBaseModDir = filepath.Join(config.FactorioDir, "data", "base")
@@ -232,6 +238,7 @@ func (config *Config) mapFlags(flags Flags) {
 	config.FactorioIP = flags.FactorioIP
 	config.FactorioSavesDir = filepath.Join(flags.FactorioDir, "saves")
 	config.FactorioBackupDir = filepath.Join(filepath.Dir(flags.ConfFile), "backups")
+	config.MapPresetDir = filepath.Join(filepath.Dir(flags.ConfFile), "map-presets")
 	config.FactorioModsDir = filepath.Join(flags.FactorioDir, "mods")
 	config.FactorioModPackDir = flags.ModPackDir
 	config.FactorioConfigDir = filepath.Join(flags.FactorioDir, "config")

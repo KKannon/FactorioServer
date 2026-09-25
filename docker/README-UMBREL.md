@@ -47,6 +47,15 @@ backups under `/opt/fsm-data/backups`. Creating, restoring, renaming, and deleti
 worlds is blocked while Factorio is running. Delete and restore operations first
 create a safety backup, so they never silently destroy the only existing copy.
 
+The Map Generator reads `map-gen-settings.example.json` and
+`map-settings.example.json` from the installed Factorio version. The simple
+editor changes common fields, while the advanced editor exposes the complete
+native documents. Factorio validates every request through `--create`; the
+panel only reports success after the resulting save ZIP has been verified.
+Map previews are also rendered by the installed Factorio binary and do not
+create or modify a save.
+Custom presets are stored under `/opt/fsm-data/map-presets`.
+
 The panel listens on TCP port `3101` by default and Factorio listens on UDP port
 `34197`. These can be overridden with `PANEL_PORT`, `PANEL_BIND_ADDRESS`, and
 `FACTORIO_PORT`. Because data is bind-mounted from the sibling `data` directory,
