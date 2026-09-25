@@ -14,6 +14,7 @@ This tool runs on a Factorio server and allows management of the Factorio server
 * Import multiple mod archives at once and safely enable, update, export, or remove them.
 * Create, duplicate, export, and load modpacks for reusable server configurations.
 * Monitor host, container, data disk, manager, Factorio process, RCON, and online players in real time.
+* Inspect live player profiles through an optional read-only Factorio bridge, with self-only access for members.
 * Allow viewing of the server logs and current configuration.
 * Authentication for protecting against unauthorized users
 * Transactional email notifications for server lifecycle, world backups,

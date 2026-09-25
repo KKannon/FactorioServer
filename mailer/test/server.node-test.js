@@ -29,6 +29,11 @@ test("monitoring alerts use the backend-owned system template", () => {
   assert.match(eventDefinitions.MonitoringAlert.action, /monitoramento/i);
 });
 
+test("player bridge installation has a restart notification", () => {
+  assert.equal(eventDefinitions.InstallPlayerBridge.template, "system");
+  assert.match(eventDefinitions.InstallPlayerBridge.status, /reinicialização/i);
+});
+
 test("notification endpoint authenticates and delegates to the library service", async (t) => {
   const sent = [];
   const server = createMailerServer({

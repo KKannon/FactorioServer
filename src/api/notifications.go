@@ -67,6 +67,7 @@ var notificationRoutes = map[string]string{
 	"AddAdmin": "Controle de jogadores", "RemoveAdmin": "Controle de jogadores",
 	"AddBan": "Controle de jogadores", "RemoveBan": "Controle de jogadores",
 	"UpdateWhitelistPolicy":  "Controle de jogadores",
+	"InstallPlayerBridge":    "Inteligência de jogadores",
 	"InstallFactorioVersion": "Instalação do Factorio", "UpdateServerSettings": "Configurações do servidor",
 }
 

@@ -68,9 +68,9 @@ const Layout = ({identity, handleLogout, serverStatus}) => {
                         <h1 className="text-dirty-white text-lg mb-2 mx-4">{t('management')}</h1>
                         <div className="text-white text-center rounded-sm bg-black shadow-inner mx-4 p-1">
                             <Link to="/">{t('nav.controls')}</Link>
-                            <Link to="/saves" last={!identity?.can_manage}>{t('nav.saves')}</Link>
+                            <Link to="/saves">{t('nav.saves')}</Link>
+                            <Link to="/players" last={!identity?.can_manage}>{t('nav.players')}</Link>
                             {identity?.can_manage && <>
-                                <Link to="/players">{t('nav.players')}</Link>
                                 <Link to="/mods">{t('nav.mods')}</Link>
                                 <Link to="/server-settings">{t('nav.serverSettings')}</Link>
                                 <Link to="/game-settings">{t('nav.gameSettings')}</Link>

@@ -167,6 +167,7 @@ var managementRoutes = map[string]bool{
 	"InstallFactorioVersion": true,
 	"GetPlayerAccess":        true, "AddWhitelistPlayer": true, "RemoveWhitelistPlayer": true,
 	"AddAdmin": true, "RemoveAdmin": true, "AddBan": true, "RemoveBan": true, "UpdateWhitelistPolicy": true,
+	"InstallPlayerBridge": true,
 	"ModPortalListAllMods": true, "ModPortalGetModInfo": true, "ModPortalLoginStatus": true,
 	"ModPortalInstallMod": true, "ModPortalLogin": true, "ModPortalLogout": true, "ModPortalInstallMultiple": true,
 	"ListInstalledMods": true, "ToggleMod": true, "DeleteMod": true, "DeleteAllMods": true, "UpdateMod": true, "UploadMod": true, "DownloadMods": true,
@@ -378,6 +379,18 @@ var apiRoutes = Routes{
 		"/players/access",
 		GetPlayerAccess,
 		false,
+	}, {
+		"GetPlayerIntelligence",
+		"GET",
+		"/players/intelligence",
+		GetPlayerIntelligence,
+		false,
+	}, {
+		"InstallPlayerBridge",
+		"POST",
+		"/players/intelligence/bridge",
+		InstallPlayerBridge,
+		true,
 	}, {
 		"AddWhitelistPlayer",
 		"POST",

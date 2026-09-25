@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 export const eventDefinitions = Object.freeze({
   MailIntegrationTest: { template: "system", action: "Teste de integração de e-mail", resource: "StupidMailCenter", status: "Concluído" },
   MonitoringAlert: { template: "system", action: "Alerta de monitoramento", resource: "Servidor Factorio", status: "Atenção necessária" },
+  InstallPlayerBridge: { template: "system", action: "Bridge de inteligência de jogadores instalado", resource: "Servidor Factorio", status: "Reinicialização necessária" },
   UserWelcome: { template: "welcome", action: "Bem-vindo ao Factorio Server Manager", resource: "Factorio Server Manager", status: "Conta conectada" },
   StartServer: { template: "lifecycle", action: "Inicialização do servidor solicitada", resource: "Servidor Factorio", status: "Em andamento" },
   StopServer: { template: "lifecycle", action: "Parada do servidor solicitada", resource: "Servidor Factorio", status: "Em andamento" },

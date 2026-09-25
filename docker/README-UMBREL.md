@@ -51,6 +51,14 @@ thresholds are `STUPID_MONITORING_MEMORY_THRESHOLD` and
 on a threshold transition and is armed again after usage falls five percentage
 points below the threshold.
 
+The Players page can install the bundled read-only player intelligence bridge
+while Factorio is stopped. Starting the world again enables live inventory,
+equipment, position, health, playtime, and crafting-queue data. The installation
+is intentionally explicit because adding a mod changes the world's active mod
+set. Members receive only their own exact username match; management roles can
+view every world profile. See `PLAYER_INTELLIGENCE.md` for the source and
+availability matrix.
+
 The production callback is exactly
 `https://factorio.stupidll.com/auth/callback`. The Cloudflare origin remains
 `http://umbrel.local:3101`; TLS terminates at Cloudflare, while the browser sees

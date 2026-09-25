@@ -30,6 +30,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Live monitoring dashboard for host CPU and memory, the Factorio data disk,
   container usage, manager runtime, Factorio process, RCON, and online players.
 - Optional threshold email alerts for high memory and Factorio data-disk usage.
+- Optional read-only Factorio bridge for player inventory, equipment, position,
+  health, playtime, crafting queue, and forward-looking activity statistics.
+- Self-only player profiles for members and all-player visibility for management roles.
 
 ### Changed
 - Destructive save and server operations now use non-GET HTTP methods.
@@ -41,6 +44,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Mod and modpack actions now expose compatibility details and translated confirmations.
 - Monitoring samples are streamed through the authenticated WebSocket, with the
   REST endpoint retained as a low-frequency fallback.
+- Player intelligence explicitly distinguishes native lifetime data from bridge
+  counters collected only after installation; unsupported achievements and
+  ambiguous per-player kill totals are not fabricated.
 
 ### Fixed
 - Map previews now render from their generated browser blob under the production

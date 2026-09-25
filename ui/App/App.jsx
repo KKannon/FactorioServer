@@ -126,8 +126,8 @@ const App = () => {
                 />}>
                     <Route index element={<Controls identity={identity} serverStatus={serverStatus}/>}/>
                     <Route path="saves" element={<Saves canManage={identity?.can_manage} serverStatus={serverStatus}/>}/>
+                    <Route path="players" element={<Players canManage={identity?.can_manage} serverStatus={serverStatus}/>}/>
                     <Route element={<ManagementRoute/>}>
-                        <Route path="players" element={<Players/>}/>
                         <Route path="mods" element={<Mods serverStatus={serverStatus}/>}/>
                         <Route path="server-settings" element={<ServerSettings serverStatus={serverStatus}/>}/>
                         <Route path="game-settings" element={<GameSettings serverStatus={serverStatus}/>}/>

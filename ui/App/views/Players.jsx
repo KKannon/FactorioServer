@@ -6,6 +6,108 @@ import Button from "../components/Button";
 import players from "../../api/resources/players";
 import {t} from "../../identity/preferences";
 
+const ticksDuration = ticks => {
+    const seconds = Math.max(0, Number(ticks || 0) / 60);
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${days ? `${days}d ` : ''}${hours ? `${hours}h ` : ''}${minutes}m`;
+};
+
+const ItemList = ({title, values = []}) => <div className="player-intelligence-list">
+    <h4>{title}</h4>
+    {values.length ? <div className="player-item-grid">{values.map((item, index) =>
+        <span key={`${item.name}-${item.quality}-${index}`} title={item.quality && item.quality !== 'normal' ? item.quality : ''}>
+            {item.name} <strong>×{item.count || 1}</strong>
+        </span>)}</div> : <p className="opacity-60">{t('empty')}</p>}
+</div>;
+
+const PlayerIntelligence = ({canManage, serverStatus}) => {
+    const [data, setData] = useState(null);
+    const [selected, setSelected] = useState('');
+    const [installing, setInstalling] = useState(false);
+    const load = () => players.intelligence().then(next => {
+        setData(next);
+        setSelected(current => next.players?.some(player => player.name === current) ? current : (next.players?.[0]?.name || ''));
+    });
+    useEffect(() => {
+        let active = true;
+        const refresh = () => players.intelligence().then(next => {
+            if (!active) return;
+            setData(next);
+            setSelected(current => next.players?.some(player => player.name === current) ? current : (next.players?.[0]?.name || ''));
+        }).catch(() => {});
+        refresh();
+        const timer = setInterval(refresh, 30000);
+        return () => { active = false; clearInterval(timer); };
+    }, []);
+    const install = async () => {
+        const confirmation = await Swal.fire({
+            icon: 'warning', title: t('players.bridgeInstallTitle'), html: t('players.bridgeInstallText'),
+            showCancelButton: true, confirmButtonText: t('players.bridgeInstall'), cancelButtonText: t('controls.cancel'),
+            confirmButtonColor: '#d97706', cancelButtonColor: '#6b7280',
+        });
+        if (!confirmation.isConfirmed) return;
+        setInstalling(true);
+        try {
+            await players.installBridge();
+            await load();
+            await Swal.fire({icon: 'success', title: t('players.bridgeInstalled'), text: t('players.bridgeRestart')});
+        } finally { setInstalling(false); }
+    };
+    if (!data) return <Panel className="mb-6" title={t('players.intelligence')} content={<p>{t('loading')}</p>}/>;
+    const player = data.players?.find(value => value.name === selected);
+    const unavailable = data.reason === 'bridge_not_installed' ? t('players.bridgeMissing')
+        : data.reason === 'bridge_disabled' ? t('players.bridgeDisabled') : t('players.bridgeUnavailable');
+    return <Panel className="mb-6" title={t('players.intelligence')} content={<>
+        {!data.available && <div className="player-bridge-state">
+            <div><strong>{unavailable}</strong><p>{t('players.bridgeExplanation')}</p></div>
+            {canManage && !data.bridge?.installed && <Button isLoading={installing} isDisabled={serverStatus?.running} onClick={install}>{t('players.bridgeInstall')}</Button>}
+        </div>}
+        {canManage && !data.bridge?.installed && serverStatus?.running && <p className="text-orange mt-2">{t('players.bridgeStopRequired')}</p>}
+        {data.available && <>
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+                <div><strong>{data.scope === 'all' ? t('players.allProfiles') : t('players.ownProfile')}</strong><br/><small>{t('players.bridgeSource')}</small></div>
+                <div className="flex gap-2 items-center">
+                    {data.players.length > 1 && <select className="text-black py-2 px-3" value={selected} onChange={event => setSelected(event.target.value)}>{data.players.map(value => <option key={value.name}>{value.name}</option>)}</select>}
+                    <Button size="sm" onClick={load}>{t('players.refresh')}</Button>
+                </div>
+            </div>
+            {!player && <p>{t('players.profileUnavailable')}</p>}
+            {player && <div className="player-intelligence">
+                <div className="player-profile-grid">
+                    <div><span>{t('players.username')}</span><strong>{player.name}</strong></div>
+                    <div><span>{t('players.connection')}</span><strong>{player.connected ? t('players.online') : t('players.offline')}</strong></div>
+                    <div><span>{t('players.playtime')}</span><strong>{ticksDuration(player.online_ticks)}</strong></div>
+                    <div><span>{t('players.force')}</span><strong>{player.force || '—'}</strong></div>
+                    <div><span>{t('players.permissionGroup')}</span><strong>{player.permission_group || '—'}</strong></div>
+                    <div><span>{t('players.surface')}</span><strong>{player.surface || '—'}</strong></div>
+                    <div><span>{t('players.position')}</span><strong>{player.position ? `${player.position.x.toFixed(1)}, ${player.position.y.toFixed(1)}` : '—'}</strong></div>
+                    <div><span>{t('players.health')}</span><strong>{player.health == null ? '—' : `${Math.round(player.health)} / ${Math.round(player.max_health || player.health)}`}</strong></div>
+                    <div><span>{t('players.afk')}</span><strong>{player.connected ? ticksDuration(player.afk_ticks) : '—'}</strong></div>
+                    <div><span>{t('players.lastOnline')}</span><strong>{player.connected ? t('players.now') : ticksDuration((data.generated_tick || 0) - player.last_online_tick)}</strong></div>
+                </div>
+                <div className="player-stat-grid">
+                    <div><span>{t('players.deaths')}</span><strong>{player.statistics?.deaths || 0}</strong></div>
+                    <div><span>{t('players.crafted')}</span><strong>{player.statistics?.crafted_items || 0}</strong></div>
+                    <div><span>{t('players.distance')}</span><strong>{Math.round(player.statistics?.distance || 0)} m</strong></div>
+                </div>
+                <p className="player-scope-note">{t('players.statisticsScope')}</p>
+                <div className="lg:grid lg:grid-cols-2 lg:gap-4">
+                    <ItemList title={t('players.inventory')} values={player.inventory}/>
+                    <ItemList title={t('players.equipment')} values={player.equipment}/>
+                    <ItemList title={t('players.weapons')} values={player.guns}/>
+                    <ItemList title={t('players.ammunition')} values={player.ammo}/>
+                    <ItemList title={t('players.armor')} values={player.armor}/>
+                    <ItemList title={t('players.trash')} values={player.trash}/>
+                </div>
+                <ItemList title={t('players.craftingQueue')} values={(player.crafting_queue || []).map(item => ({name: item.recipe, count: item.count, quality: 'normal'}))}/>
+                <div className="player-capability-note"><strong>{t('players.achievements')}:</strong> {t('players.achievementsUnavailable')}</div>
+            </div>}
+        </>}
+    </>}/>;
+};
+
 const PlayerList = ({title, values, onAdd, onRemove, emptyText}) => {
     const [username, setUsername] = useState('');
     const [busy, setBusy] = useState(false);
@@ -40,14 +142,14 @@ const PlayerList = ({title, values, onAdd, onRemove, emptyText}) => {
     </>}/>;
 };
 
-const Players = () => {
+const Players = ({canManage, serverStatus}) => {
     const [access, setAccess] = useState(null);
     const [banUsername, setBanUsername] = useState('');
     const [banReason, setBanReason] = useState('');
     const [busy, setBusy] = useState(false);
     const [policyBusy, setPolicyBusy] = useState(false);
     const load = () => players.access().then(setAccess);
-    useEffect(() => { load(); }, []);
+    useEffect(() => { if (canManage) load(); }, [canManage]);
     const apply = async operation => setAccess(await operation());
     const addBan = async event => {
         event.preventDefault();
@@ -71,8 +173,11 @@ const Players = () => {
         try { await apply(() => players.setWhitelistEnabled(enabled)); }
         finally { setPolicyBusy(false); }
     };
-    if (!access) return <Panel title={t('players.title')} content={<p>{t('loading')}</p>}/>;
     return <>
+        <PlayerIntelligence canManage={canManage} serverStatus={serverStatus}/>
+        {!canManage && <Panel title={t('players.accessRestricted')} content={<p>{t('players.accessRestrictedText')}</p>}/>}
+        {canManage && !access && <Panel title={t('players.title')} content={<p>{t('loading')}</p>}/>}
+        {canManage && access && <>
         <Panel className="mb-6" title={t('players.policy')} content={<label className="flex items-center gap-3">
             <input type="checkbox" checked={access.whitelist_enabled} disabled={policyBusy}
                    onChange={event => updatePolicy(event.target.checked)}/>
@@ -105,6 +210,7 @@ const Players = () => {
                 })}
             </div>
         </>}/>
+        </>}
     </>;
 };
 

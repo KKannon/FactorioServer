@@ -30,6 +30,18 @@ html[data-compact="true"] .container { max-width: 90rem; }
 .monitoring-players h3 { margin-bottom: .65rem; color: #ffe6c0; font-weight: 700; }
 .monitoring-players th, .monitoring-players td { padding: .45rem .6rem; border-bottom: 1px solid rgba(255,255,255,.08); text-align: left; }
 .monitoring-updated { margin-top: 1rem; text-align: right; opacity: .6; font-size: .75rem; }
+.player-bridge-state { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border: 1px solid rgba(227,152,39,.45); background: rgba(227,152,39,.08); }
+.player-profile-grid, .player-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem; }
+.player-profile-grid > div, .player-stat-grid > div { padding: .8rem; background: rgba(0,0,0,.22); border: 1px solid rgba(255,255,255,.08); }
+.player-profile-grid span, .player-stat-grid span { display: block; margin-bottom: .25rem; font-size: .72rem; opacity: .65; }
+.player-profile-grid strong, .player-stat-grid strong { color: #ffe6c0; }
+.player-stat-grid { margin-top: 1rem; }
+.player-scope-note, .player-capability-note { margin-top: .75rem; padding: .7rem; font-size: .78rem; opacity: .75; background: rgba(0,0,0,.15); }
+.player-intelligence-list { margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,.18); border: 1px solid rgba(255,255,255,.08); }
+.player-intelligence-list h4 { margin-bottom: .65rem; color: #ffe6c0; font-weight: 700; }
+.player-item-grid { display: flex; flex-wrap: wrap; gap: .45rem; }
+.player-item-grid > span { padding: .35rem .55rem; background: rgba(255,255,255,.08); border-radius: .2rem; font-size: .8rem; }
+@media (max-width: 640px) { .player-bridge-state { align-items: stretch; flex-direction: column; } }
 .console-output { max-height: 32rem; overflow: auto; padding: 1rem; background: #111; color: #d8f3d8; font: .82rem/1.45 monospace; white-space: pre-wrap; }
 .identity-summary { display: flex; align-items: center; gap: .75rem; color: #fff; min-width: 0; }
 .identity-avatar { width: 2.5rem; height: 2.5rem; flex: 0 0 2.5rem; border-radius: 9999px; object-fit: cover; }
