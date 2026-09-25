@@ -20,14 +20,35 @@ const resourceDetails = {
 };
 const resources = Object.keys(resourceDetails);
 const percentage = value => Math.max(17, Math.min(600, Math.round(Number(value || 1) * 100)));
-const PercentageField = ({value, disabled, onChange, label}) => {
+export const PercentageField = ({value, disabled, onChange, label}) => {
     const current = percentage(value);
+    const [draft, setDraft] = useState(String(current));
     const progress = ((current - 17) / (600 - 17)) * 100;
+    useEffect(() => setDraft(String(current)), [current]);
+    const commit = rawValue => {
+        const numeric = Number(rawValue);
+        const next = Math.max(17, Math.min(600, Math.round(Number.isFinite(numeric) ? numeric : current)));
+        setDraft(String(next));
+        onChange(next / 100);
+    };
+    const edit = event => {
+        const rawValue = event.target.value;
+        setDraft(rawValue);
+        const numeric = Number(rawValue);
+        if (rawValue !== '' && Number.isFinite(numeric) && numeric >= 17 && numeric <= 600) {
+            onChange(Math.round(numeric) / 100);
+        }
+    };
     return <label className={`map-percentage${disabled ? ' is-disabled' : ''}`} title={label}>
         <input aria-label={label} className="factorio-range" type="range" min="17" max="600" step="1"
                disabled={disabled} value={current} style={{'--range-progress': `${progress}%`}}
                onChange={event => onChange(Number(event.target.value) / 100)}/>
-        <output>{current}%</output>
+        <span className="map-percentage-value">
+            <input aria-label={`${label} (%)`} type="number" inputMode="numeric" min="17" max="600" step="1"
+                   disabled={disabled} value={draft} onChange={edit} onBlur={event => commit(event.target.value)}
+                   onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } }}/>
+            <span aria-hidden="true">%</span>
+        </span>
     </label>;
 };
 const NumberField = ({label, value, onChange, min, max, step = 1}) => <label className="block">

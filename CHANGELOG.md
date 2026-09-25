@@ -41,6 +41,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   REST endpoint retained as a low-frequency fallback.
 
 ### Fixed
+- Map previews now render from their generated browser blob under the production
+  content security policy, and resource percentages can be edited directly
+  while remaining synchronized with their sliders.
 - Invalid mod archives now return an error instead of terminating the manager process.
 - RCON credentials and complete server settings are no longer written to logs.
 - Save and modpack paths are constrained to their configured data directories.
