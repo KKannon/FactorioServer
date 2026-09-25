@@ -75,6 +75,7 @@ const Layout = ({identity, handleLogout, serverStatus}) => {
                                 <Link to="/server-settings">{t('nav.serverSettings')}</Link>
                                 <Link to="/game-settings">{t('nav.gameSettings')}</Link>
                                 <Link to="/console">{t('nav.console')}</Link>
+                                <Link to="/monitoring">{t('nav.monitoring')}</Link>
                                 <Link to="/logs" last={true}>{t('nav.logs')}</Link>
                             </>}
                         </div>

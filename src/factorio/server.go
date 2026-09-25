@@ -42,6 +42,9 @@ type Server struct {
 	Settings       map[string]interface{} `json:"-"`
 	Rcon           *rcon.RemoteConsole    `json:"-"`
 	LogChan        chan []string          `json:"-"`
+	processID      int                    `json:"-"`
+	startedAt      time.Time              `json:"-"`
+	onlinePlayers  map[string]time.Time   `json:"-"`
 }
 
 type ServerStatus struct {
@@ -102,6 +105,9 @@ func (server *Server) SetState(state string, lastError string) {
 	server.Running = state == StateStarting || state == StateRunning || state == StateStopping
 	if state == StateStopped || state == StateError {
 		server.RconConnected = false
+		server.processID = 0
+		server.startedAt = time.Time{}
+		server.onlinePlayers = make(map[string]time.Time)
 	}
 	server.mu.Unlock()
 	if changed {
@@ -521,6 +527,11 @@ func (server *Server) Run() (runErr error) {
 		log.Printf("Factorio process failed to start: %s", err)
 		return err
 	}
+	server.mu.Lock()
+	server.processID = server.Cmd.Process.Pid
+	server.startedAt = time.Now()
+	server.onlinePlayers = make(map[string]time.Time)
+	server.mu.Unlock()
 	server.SetState(StateRunning, "")
 
 	err = server.Cmd.Wait()
@@ -542,6 +553,7 @@ func (server *Server) parseRunningCommand(std io.ReadCloser) (err error) {
 	stdScanner := bufio.NewScanner(std)
 	for stdScanner.Scan() {
 		text := stdScanner.Text()
+		server.observePlayerEvent(text)
 
 		log.Printf("Factorio Server: %s", text)
 		if err := server.writeLog(text); err != nil {

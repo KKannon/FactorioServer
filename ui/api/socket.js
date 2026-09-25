@@ -28,6 +28,14 @@ bus.on('server status unsubscribe', () => {
     subscriptions.delete('server_status');
     sendControl('unsubscribe', 'server_status');
 });
+bus.on('metrics subscribe', () => {
+    subscriptions.add('system_metrics');
+    sendControl('subscribe', 'system_metrics');
+});
+bus.on('metrics unsubscribe', () => {
+    subscriptions.delete('system_metrics');
+    sendControl('unsubscribe', 'system_metrics');
+});
 bus.on('command send', command => {
     if (!sendControl('command', command)) window.flash?.('Console disconnected. Try again.', 'red');
 });

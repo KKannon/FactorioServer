@@ -36,6 +36,21 @@ sensitive actions notify the authenticated operator at the email supplied by
 OIDC; delivery failures are logged but never roll back the completed Factorio
 action. The API key only needs the `email:send` scope.
 
+The Monitoring page separates host, container, manager, and Factorio process
+metrics. Samples are sent every five seconds through the authenticated
+WebSocket; the REST endpoint remains a 30-second fallback. Player counts come
+from Factorio's native join/leave log events. Live UPS is explicitly reported
+as unavailable because Factorio does not expose it through a safe native
+non-script command; script commands are not issued because they can affect
+achievements.
+
+To receive a single email when memory or the Factorio data volume crosses a
+threshold, set `STUPID_MONITORING_ALERT_RECIPIENT`. Optional percentage
+thresholds are `STUPID_MONITORING_MEMORY_THRESHOLD` and
+`STUPID_MONITORING_DISK_THRESHOLD` (both default to `90`). An alert is sent only
+on a threshold transition and is armed again after usage falls five percentage
+points below the threshold.
+
 The production callback is exactly
 `https://factorio.stupidll.com/auth/callback`. The Cloudflare origin remains
 `http://umbrel.local:3101`; TLS terminates at Cloudflare, while the browser sees

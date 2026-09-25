@@ -24,6 +24,11 @@ test("welcome template renders the first-login message without placeholders", as
   assert.doesNotMatch(`${rendered.subject}${rendered.html}${rendered.text}`, /\{\{\{/);
 });
 
+test("monitoring alerts use the backend-owned system template", () => {
+  assert.equal(eventDefinitions.MonitoringAlert.template, "system");
+  assert.match(eventDefinitions.MonitoringAlert.action, /monitoramento/i);
+});
+
 test("notification endpoint authenticates and delegates to the library service", async (t) => {
   const sent = [];
   const server = createMailerServer({

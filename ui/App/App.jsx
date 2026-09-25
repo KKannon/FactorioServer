@@ -17,6 +17,7 @@ import socket from "../api/socket";
 import {applyPreferences, t} from "../identity/preferences";
 import ServerStatusGate from "./components/ServerStatusGate";
 import Players from "./views/Players";
+import Monitoring from "./views/Monitoring";
 
 const App = () => {
     const [identity, setIdentity] = useState(null);
@@ -131,6 +132,7 @@ const App = () => {
                         <Route path="server-settings" element={<ServerSettings serverStatus={serverStatus}/>}/>
                         <Route path="game-settings" element={<GameSettings serverStatus={serverStatus}/>}/>
                         <Route path="console" element={<Console canManage={identity?.can_manage} serverStatus={serverStatus}/>}/>
+                        <Route path="monitoring" element={<Monitoring/>}/>
                         <Route path="logs" element={<Logs serverStatus={serverStatus}/>}/>
                     </Route>
                     <Route path="help" element={<Help serverStatus={serverStatus}/>}/>

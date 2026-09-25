@@ -120,6 +120,10 @@ func NewRouter() *mux.Router {
 		Methods("GET").
 		Name("Console").
 		Handler(http.StripPrefix("/console", http.FileServer(http.Dir("./app/"))))
+	subRouter.Path("/monitoring").
+		Methods("GET").
+		Name("Monitoring").
+		Handler(http.StripPrefix("/monitoring", http.FileServer(http.Dir("./app/"))))
 	subRouter.Path("/logs").
 		Methods("GET").
 		Name("Logs").

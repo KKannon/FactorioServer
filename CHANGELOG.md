@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Native mod dependency analysis with required, optional, hidden, incompatible,
   and load-order dependency support.
 - Modpack export and duplication actions.
+- Live monitoring dashboard for host CPU and memory, the Factorio data disk,
+  container usage, manager runtime, Factorio process, RCON, and online players.
+- Optional threshold email alerts for high memory and Factorio data-disk usage.
 
 ### Changed
 - Destructive save and server operations now use non-GET HTTP methods.
@@ -34,6 +37,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Panel management roles and Factorio in-game administrator roles are now configured separately.
 - Incompatible mods cannot be enabled, and mods required by enabled mods cannot be deleted.
 - Mod and modpack actions now expose compatibility details and translated confirmations.
+- Monitoring samples are streamed through the authenticated WebSocket, with the
+  REST endpoint retained as a low-frequency fallback.
 
 ### Fixed
 - Invalid mod archives now return an error instead of terminating the manager process.
