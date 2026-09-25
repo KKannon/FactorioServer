@@ -29,12 +29,8 @@ func (server *Server) Kill() error {
 	}
 	log.Printf("Sent SIGKILL to Factorio process. Factorio forced to exit.")
 
-	if server.Rcon != nil {
-		err = server.Rcon.Close()
-		if err != nil {
-			log.Printf("Error close rcon connection: %s", err)
-		}
-		server.SetRconConnected(false)
+	if err = server.CloseRCON(); err != nil {
+		log.Printf("Error close rcon connection: %s", err)
 	}
 
 	return nil
@@ -57,12 +53,8 @@ func (server *Server) Stop() error {
 	}
 	log.Printf("Sent SIGINT to Factorio process. Factorio shutting down...")
 
-	if server.Rcon != nil {
-		err = server.Rcon.Close()
-		if err != nil {
-			log.Printf("Error close rcon connection: %s", err)
-		}
-		server.SetRconConnected(false)
+	if err = server.CloseRCON(); err != nil {
+		log.Printf("Error close rcon connection: %s", err)
 	}
 
 	return nil

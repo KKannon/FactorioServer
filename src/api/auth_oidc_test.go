@@ -150,6 +150,21 @@ func TestFactorioUsernamePrefersCurrentUserInfoClaim(t *testing.T) {
 	require.Empty(t, (AuthUser{Email: "must-not-be-used@example.com"}).FactorioUsername())
 }
 
+func TestManagementAndFactorioAdministratorRolesAreIndependent(t *testing.T) {
+	t.Setenv("STUPID_AUTHENTICATOR_MANAGEMENT_ROLES", "admin,manager,support")
+	t.Setenv("STUPID_AUTHENTICATOR_FACTORIO_ADMIN_ROLES", "admin")
+	config := OIDCConfig{Issuer: "https://issuer.example", ClientID: "client", ClientSecret: "secret", RedirectURI: "https://factorio.stupidll.com/auth/callback", JWKSURL: "https://issuer.example/jwks"}
+	a := newAuth(config, testDB(t), testCipher(t), true)
+
+	manager := a.prepareUser(AuthUser{Role: "manager"})
+	require.True(t, manager.CanManage)
+	require.False(t, manager.ServerAdmin)
+
+	administrator := a.prepareUser(AuthUser{Role: "admin"})
+	require.True(t, administrator.CanManage)
+	require.True(t, administrator.ServerAdmin)
+}
+
 func TestUserInfo401RefreshesOnceAndUpdatesProfile(t *testing.T) {
 	userinfoCalls, tokenCalls := 0, 0
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

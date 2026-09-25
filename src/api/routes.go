@@ -99,6 +99,10 @@ func NewRouter() *mux.Router {
 		Methods("GET").
 		Name("Saves").
 		Handler(http.StripPrefix("/saves", http.FileServer(http.Dir("./app/"))))
+	subRouter.Path("/players").
+		Methods("GET").
+		Name("Players").
+		Handler(http.StripPrefix("/players", http.FileServer(http.Dir("./app/"))))
 	subRouter.Path("/mods").
 		Methods("GET").
 		Name("Mods").
@@ -154,7 +158,9 @@ var managementRoutes = map[string]bool{
 	"StartServer": true, "StopServer": true, "KillServer": true, "UpdateServerSettings": true,
 	"RestartServer":          true,
 	"InstallFactorioVersion": true,
-	"ModPortalListAllMods":   true, "ModPortalGetModInfo": true, "ModPortalLoginStatus": true,
+	"GetPlayerAccess":        true, "AddWhitelistPlayer": true, "RemoveWhitelistPlayer": true,
+	"AddAdmin": true, "RemoveAdmin": true, "AddBan": true, "RemoveBan": true, "UpdateWhitelistPolicy": true,
+	"ModPortalListAllMods": true, "ModPortalGetModInfo": true, "ModPortalLoginStatus": true,
 	"ModPortalInstallMod": true, "ModPortalLogin": true, "ModPortalLogout": true, "ModPortalInstallMultiple": true,
 	"ListInstalledMods": true, "ToggleMod": true, "DeleteMod": true, "DeleteAllMods": true, "UpdateMod": true, "UploadMod": true, "DownloadMods": true,
 	"ModPacksList": true, "ModPackDownload": true, "ModPackListMods": true,
@@ -286,6 +292,54 @@ var apiRoutes = Routes{
 		"POST",
 		"/settings/update",
 		UpdateServerSettings,
+		false,
+	}, {
+		"GetPlayerAccess",
+		"GET",
+		"/players/access",
+		GetPlayerAccess,
+		false,
+	}, {
+		"AddWhitelistPlayer",
+		"POST",
+		"/players/whitelist",
+		AddWhitelistPlayer,
+		false,
+	}, {
+		"RemoveWhitelistPlayer",
+		"DELETE",
+		"/players/whitelist/{username}",
+		RemoveWhitelistPlayer,
+		false,
+	}, {
+		"UpdateWhitelistPolicy",
+		"POST",
+		"/players/whitelist/enabled",
+		UpdateWhitelistPolicy,
+		false,
+	}, {
+		"AddAdmin",
+		"POST",
+		"/players/admins",
+		AddAdmin,
+		false,
+	}, {
+		"RemoveAdmin",
+		"DELETE",
+		"/players/admins/{username}",
+		RemoveAdmin,
+		false,
+	}, {
+		"AddBan",
+		"POST",
+		"/players/bans",
+		AddBan,
+		false,
+	}, {
+		"RemoveBan",
+		"DELETE",
+		"/players/bans/{username}",
+		RemoveBan,
 		false,
 	},
 	// Mod Portal Stuff

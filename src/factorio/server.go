@@ -24,6 +24,7 @@ import (
 
 type Server struct {
 	mu             sync.RWMutex           `json:"-"`
+	rconMu         sync.Mutex             `json:"-"`
 	Cmd            *exec.Cmd              `json:"-"`
 	Savefile       string                 `json:"savefile"`
 	Latency        int                    `json:"latency"`
@@ -122,6 +123,58 @@ func (server *Server) SetRconConnected(connected bool) {
 	if changed {
 		server.broadcastStatus()
 	}
+}
+
+func (server *Server) SetRCON(console *rcon.RemoteConsole) {
+	server.rconMu.Lock()
+	server.mu.Lock()
+	previous := server.Rcon
+	changed := server.RconConnected != (console != nil)
+	server.Rcon = console
+	server.RconConnected = console != nil
+	server.mu.Unlock()
+	if previous != nil && previous != console {
+		if err := previous.Close(); err != nil {
+			log.Printf("Error closing previous rcon connection: %s", err)
+		}
+	}
+	server.rconMu.Unlock()
+	if changed {
+		server.broadcastStatus()
+	}
+}
+
+func (server *Server) SendRCON(command string) error {
+	server.rconMu.Lock()
+	defer server.rconMu.Unlock()
+	server.mu.RLock()
+	console := server.Rcon
+	connected := server.RconConnected
+	server.mu.RUnlock()
+	if console == nil || !connected {
+		return errors.New("RCON is not connected")
+	}
+	_, err := console.Write(command)
+	return err
+}
+
+func (server *Server) CloseRCON() error {
+	server.rconMu.Lock()
+	server.mu.Lock()
+	console := server.Rcon
+	changed := server.RconConnected || console != nil
+	server.Rcon = nil
+	server.RconConnected = false
+	server.mu.Unlock()
+	var err error
+	if console != nil {
+		err = console.Close()
+	}
+	server.rconMu.Unlock()
+	if changed {
+		server.broadcastStatus()
+	}
+	return err
 }
 
 func (server *Server) PrepareStart(savefile string, bindIP string, port int) error {
@@ -352,6 +405,11 @@ func NewFactorioServer() (err error) {
 			return err
 		}
 	}
+	if _, err = os.Stat(config.FactorioBanFile); os.IsNotExist(err) {
+		if err = ioutil.WriteFile(config.FactorioBanFile, []byte("[]"), 0664); err != nil {
+			return err
+		}
+	}
 
 	SetFactorioServer(server)
 
@@ -414,8 +472,9 @@ func (server *Server) Run() (runErr error) {
 		args = append(args, "--server-adminlist", config.FactorioAdminFile)
 	}
 	args = append(args,
-		"--use-server-whitelist=true",
-		"--server-whitelist", config.FactorioWhitelistFile)
+		fmt.Sprintf("--use-server-whitelist=%t", WhitelistEnabled()),
+		"--server-whitelist", config.FactorioWhitelistFile,
+		"--server-banlist", config.FactorioBanFile)
 
 	if strings.HasPrefix(server.Savefile, "Load Latest") {
 		args = append(args, "--start-server-load-latest")
@@ -567,13 +626,13 @@ func serverWebsocketControl(controls websocket.WsControls) {
 		if server.GetRunning() {
 			log.Printf("Received command: %v", command)
 
-			reqId, err := server.Rcon.Write(command)
+			err := server.SendRCON(command)
 			if err != nil {
 				log.Printf("Error sending rcon command: %s", err)
 				return
 			}
 
-			log.Printf("Command send to Factorio: %s, with rcon request id: %v", command, reqId)
+			log.Printf("Command sent to Factorio: %s", command)
 		}
 	}
 }

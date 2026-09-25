@@ -89,6 +89,7 @@ type AuthUser struct {
 	PreferredUsername string            `json:"preferred_username,omitempty"`
 	GameUsername      string            `json:"game_username,omitempty"`
 	CanManage         bool              `json:"can_manage"`
+	ServerAdmin       bool              `json:"server_admin"`
 	OriginApp         string            `json:"origin_app"`
 	Apps              []string          `json:"apps"`
 	Role              string            `json:"role"`

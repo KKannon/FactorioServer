@@ -60,15 +60,16 @@ type OIDCSession struct {
 type authContextKey struct{}
 
 type Auth struct {
-	config          OIDCConfig
-	db              *gorm.DB
-	oauth           oauth2.Config
-	verifier        *oidc.IDTokenVerifier
-	httpClient      *http.Client
-	cipher          cipher.AEAD
-	cookieName      string
-	cookieSecure    bool
-	managementRoles map[string]struct{}
+	config             OIDCConfig
+	db                 *gorm.DB
+	oauth              oauth2.Config
+	verifier           *oidc.IDTokenVerifier
+	httpClient         *http.Client
+	cipher             cipher.AEAD
+	cookieName         string
+	cookieSecure       bool
+	managementRoles    map[string]struct{}
+	factorioAdminRoles map[string]struct{}
 }
 
 var auth Auth
@@ -149,13 +150,20 @@ func newAuth(config OIDCConfig, db *gorm.DB, aead cipher.AEAD, secure bool) Auth
 			managementRoles[role] = struct{}{}
 		}
 	}
+	factorioAdminRoles := make(map[string]struct{})
+	for _, role := range strings.Split(envOrDefault("STUPID_AUTHENTICATOR_FACTORIO_ADMIN_ROLES", "admin,adm,owner,operator"), ",") {
+		if role = strings.TrimSpace(role); role != "" {
+			factorioAdminRoles[role] = struct{}{}
+		}
+	}
 	return Auth{config: config, db: db, oauth: oauthConfig,
 		verifier:   oidc.NewVerifier(config.Issuer, oidc.NewRemoteKeySet(context.Background(), config.JWKSURL), &oidc.Config{ClientID: config.ClientID}),
-		httpClient: &http.Client{Timeout: 15 * time.Second}, cipher: aead, cookieName: cookieName, cookieSecure: secure, managementRoles: managementRoles}
+		httpClient: &http.Client{Timeout: 15 * time.Second}, cipher: aead, cookieName: cookieName, cookieSecure: secure, managementRoles: managementRoles, factorioAdminRoles: factorioAdminRoles}
 }
 
 func (a *Auth) prepareUser(user AuthUser) AuthUser {
 	_, user.CanManage = a.managementRoles[user.Role]
+	_, user.ServerAdmin = a.factorioAdminRoles[user.Role]
 	user.GameUsername = user.FactorioUsername()
 	// Keep the public response consistent even with providers that only expose
 	// the standard OIDC preferred_username alias.
@@ -163,7 +171,7 @@ func (a *Auth) prepareUser(user AuthUser) AuthUser {
 		user.Username = strings.TrimSpace(user.PreferredUsername)
 	}
 	if user.GameUsername != "" {
-		if err := factorio.EnsurePlayerAccess(user.GameUsername, user.CanManage); err != nil {
+		if err := factorio.EnsurePlayerAccess(user.GameUsername, user.ServerAdmin); err != nil {
 			log.Printf("could not synchronize Factorio access for user %s: %v", user.PublicUserID, err)
 		}
 	}

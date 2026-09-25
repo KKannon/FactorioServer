@@ -64,3 +64,51 @@ func TestRemoveAccessEntryIgnoresCase(t *testing.T) {
 		t.Fatalf("access list = %#v; want [Beta]", values)
 	}
 }
+
+func TestWhitelistPolicyDefaultsToEnabled(t *testing.T) {
+	enabled, err := readWhitelistEnabledAt(filepath.Join(t.TempDir(), "missing-policy.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !enabled {
+		t.Fatal("missing policy must default to enabled")
+	}
+}
+
+func TestWhitelistPolicyReadsDisabledState(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "policy.json")
+	if err := os.WriteFile(path, []byte(`{"whitelist_enabled":false}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	enabled, err := readWhitelistEnabledAt(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if enabled {
+		t.Fatal("stored disabled state was ignored")
+	}
+}
+
+func TestListBansSupportsUsersAndAddresses(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "server-banlist.json")
+	data := `[{"username":"Player","reason":"spam"},{"address":"192.0.2.4","reason":"abuse"}]`
+	if err := os.WriteFile(path, []byte(data), 0600); err != nil {
+		t.Fatal(err)
+	}
+	bans, err := listBans(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(bans) != 2 || bans[0].Username != "Player" || bans[1].Address != "192.0.2.4" {
+		t.Fatalf("unexpected bans: %#v", bans)
+	}
+}
+
+func TestBanReasonRejectsControlCharacters(t *testing.T) {
+	if validBanReason("line one\nline two") {
+		t.Fatal("newline must not be accepted in an RCON command")
+	}
+	if !validBanReason("griefing and spam") {
+		t.Fatal("plain text reason should be accepted")
+	}
+}

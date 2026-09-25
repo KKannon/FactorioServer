@@ -63,6 +63,9 @@ func (server *Server) Kill() error {
 		return err
 	}
 	log.Println("Sent SIGKILL to Factorio process. Factorio forced to exit.")
+	if err := server.CloseRCON(); err != nil {
+		log.Printf("Error close rcon connection: %s", err)
+	}
 
 	return nil
 }
@@ -85,6 +88,9 @@ func (server *Server) Stop() error {
 		return err
 	}
 	log.Println("Sent SIGINT to Factorio process. Factorio shutting down...")
+	if err := server.CloseRCON(); err != nil {
+		log.Printf("Error close rcon connection: %s", err)
+	}
 	time.Sleep(20 * time.Millisecond)
 	// Re-enable handling of CTRL+C after we're sure that the factorio server is shut down.
 	if err := setCtrlHandlingIsDisabledForThisProcess(false); err != nil {

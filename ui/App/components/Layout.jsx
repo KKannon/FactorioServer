@@ -70,6 +70,7 @@ const Layout = ({identity, handleLogout, serverStatus}) => {
                             <Link to="/">{t('nav.controls')}</Link>
                             <Link to="/saves" last={!identity?.can_manage}>{t('nav.saves')}</Link>
                             {identity?.can_manage && <>
+                                <Link to="/players">{t('nav.players')}</Link>
                                 <Link to="/mods">{t('nav.mods')}</Link>
                                 <Link to="/server-settings">{t('nav.serverSettings')}</Link>
                                 <Link to="/game-settings">{t('nav.gameSettings')}</Link>

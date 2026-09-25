@@ -33,7 +33,14 @@ ID tokens are encrypted in the persistent SQLite database and are never sent to
 the browser. Logout removes the local session before redirecting to the provider.
 Users linked to the app can read status and configuration. Only roles listed in
 `STUPID_AUTHENTICATOR_MANAGEMENT_ROLES` may change saves, mods, settings, or the
-running server; the default is `admin,owner,operator`.
+running server; the default is `admin,adm,manager,support,owner,operator`.
+Only roles in `STUPID_AUTHENTICATOR_FACTORIO_ADMIN_ROLES` are automatically
+promoted inside Factorio; the default is `admin,adm,owner,operator`.
+
+The Players page edits Factorio's native whitelist, administrator list, and
+banlist. When the game is running changes are also sent through RCON; if runtime
+synchronization fails, the file change is rolled back. Whitelist enforcement is
+enabled by default and its on/off policy is stored in the Factorio config volume.
 
 The panel listens on TCP port `3101` by default and Factorio listens on UDP port
 `34197`. These can be overridden with `PANEL_PORT`, `PANEL_BIND_ADDRESS`, and

@@ -54,7 +54,7 @@ const ServerSettingsModern = () => {
 
     const categories = useMemo(() => {
         const grouped = {access: [], gameplay: [], autosave: [], network: [], other: []};
-        Object.keys(settings || {}).filter(key => !key.startsWith('_comment_')).forEach(key => grouped[categoryFor(key)].push(key));
+        Object.keys(settings || {}).filter(key => !key.startsWith('_comment_') && key !== 'admins').forEach(key => grouped[categoryFor(key)].push(key));
         return grouped;
     }, [settings]);
 

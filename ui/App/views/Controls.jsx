@@ -225,7 +225,7 @@ const Controls = ({serverStatus, identity}) => {
             content={<div className="grid md:grid-cols-3 gap-4">
                 <div><strong>{t('access.username')}</strong><div>{identity?.game_username || t('unknown')}</div></div>
                 <div><strong>{t('access.role')}</strong><div>{identity?.role || t('unknown')}</div></div>
-                <div><strong>{t('access.whitelist')}</strong><div>{t('access.allowed')} · {canManage ? t('access.admin') : t('access.member')}</div></div>
+                <div><strong>{t('access.whitelist')}</strong><div>{t('access.allowed')} · {identity?.server_admin ? t('access.admin') : t('access.member')}</div></div>
             </div>}
         />
         </>

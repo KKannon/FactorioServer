@@ -19,6 +19,10 @@
   another failure deletes the local session.
 - Read access requires a valid app role. Mutations additionally require a role
   from `STUPID_AUTHENTICATOR_MANAGEMENT_ROLES` and are enforced in Go middleware.
+- Panel management and in-game administrator privileges are separate. Roles in
+  `STUPID_AUTHENTICATOR_FACTORIO_ADMIN_ROLES` are promoted through Factorio's
+  native admin list; support and manager roles can manage the panel without
+  automatically becoming administrators inside the game.
 - Logout deletes the local database session and cookie before redirecting to the
   provider. No unregistered `post_logout_redirect_uri` is sent.
 
@@ -30,6 +34,8 @@ Copy `.env.example` to `.env`. Set the secret supplied separately:
 STUPID_AUTHENTICATOR_CLIENT_SECRET=CLIENT_SECRET_PROVIDED_SEPARATELY
 STUPID_AUTHENTICATOR_ISSUER=https://authenticator.stupidll.com/o
 STUPID_AUTHENTICATOR_REDIRECT_URI=https://factorio.stupidll.com/auth/callback
+STUPID_AUTHENTICATOR_MANAGEMENT_ROLES=admin,adm,manager,support,owner,operator
+STUPID_AUTHENTICATOR_FACTORIO_ADMIN_ROLES=admin,adm,owner,operator
 ```
 
 The issuer includes `/o` because it must exactly match the provider discovery
