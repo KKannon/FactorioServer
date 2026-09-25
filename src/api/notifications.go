@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -16,7 +17,25 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"gorm.io/gorm"
 )
+
+const (
+	welcomePending = "pending"
+	welcomeQueued  = "queued"
+	welcomeSent    = "sent"
+)
+
+type WelcomeNotification struct {
+	PublicUserID string `gorm:"primaryKey;size:64"`
+	Recipient    string `gorm:"not null"`
+	Name         string `gorm:"not null"`
+	Role         string `gorm:"not null"`
+	Status       string `gorm:"not null;index"`
+	Attempts     int
+	CreatedAt    time.Time
+	SentAt       *time.Time
+}
 
 type notificationPayload struct {
 	Event          string `json:"event"`
@@ -26,6 +45,7 @@ type notificationPayload struct {
 	Resource       string `json:"resource"`
 	OccurredAt     string `json:"occurredAt"`
 	IdempotencyKey string `json:"idempotencyKey"`
+	WelcomeUserID  string `json:"-"`
 }
 
 type notificationDispatcher struct {
@@ -33,6 +53,7 @@ type notificationDispatcher struct {
 	token    string
 	client   *http.Client
 	queue    chan notificationPayload
+	db       *gorm.DB
 }
 
 var notifications *notificationDispatcher
@@ -68,8 +89,10 @@ func SetupNotifications() {
 		token:    token,
 		client:   &http.Client{Timeout: 15 * time.Second},
 		queue:    make(chan notificationPayload, 64),
+		db:       auth.db,
 	}
 	go notifications.run()
+	notifications.recoverWelcomeNotifications()
 	log.Print("Email notifications enabled")
 }
 
@@ -79,8 +102,90 @@ func (d *notificationDispatcher) run() {
 		err := d.deliver(ctx, payload)
 		cancel()
 		if err != nil {
+			d.completeWelcome(payload, false)
 			log.Printf("Email notification delivery failed for event %s: %v", payload.Event, err)
+		} else {
+			d.completeWelcome(payload, true)
 		}
+	}
+}
+
+func (d *notificationDispatcher) completeWelcome(payload notificationPayload, delivered bool) {
+	if payload.WelcomeUserID == "" || d.db == nil {
+		return
+	}
+	updates := map[string]interface{}{"attempts": gorm.Expr("attempts + 1")}
+	if delivered {
+		now := time.Now().UTC()
+		updates["status"] = welcomeSent
+		updates["sent_at"] = &now
+	} else {
+		updates["status"] = welcomePending
+	}
+	d.db.Model(&WelcomeNotification{}).Where("public_user_id = ?", payload.WelcomeUserID).Updates(updates)
+}
+
+func welcomeIdempotencyKey(publicUserID string) string {
+	digest := sha256.Sum256([]byte(publicUserID))
+	return "factorio/welcome/" + hex.EncodeToString(digest[:16])
+}
+
+func (d *notificationDispatcher) queueWelcome(record WelcomeNotification) {
+	if d.db == nil {
+		return
+	}
+	claimed := d.db.Model(&WelcomeNotification{}).
+		Where("public_user_id = ? AND status = ?", record.PublicUserID, welcomePending).
+		Update("status", welcomeQueued)
+	if claimed.Error != nil || claimed.RowsAffected != 1 {
+		return
+	}
+	payload := notificationPayload{
+		Event: "UserWelcome", Recipient: record.Recipient, ActorName: record.Name, ActorRole: record.Role,
+		Resource: "Factorio Server Manager", OccurredAt: record.CreatedAt.UTC().Format(time.RFC3339),
+		IdempotencyKey: welcomeIdempotencyKey(record.PublicUserID), WelcomeUserID: record.PublicUserID,
+	}
+	select {
+	case d.queue <- payload:
+	default:
+		d.db.Model(&WelcomeNotification{}).Where("public_user_id = ?", record.PublicUserID).Update("status", welcomePending)
+		log.Print("Email notification queue is full; welcome email remains pending")
+	}
+}
+
+func (d *notificationDispatcher) recoverWelcomeNotifications() {
+	if d.db == nil {
+		return
+	}
+	d.db.Model(&WelcomeNotification{}).Where("status = ?", welcomeQueued).Update("status", welcomePending)
+	var pending []WelcomeNotification
+	if err := d.db.Where("status = ?", welcomePending).Limit(100).Find(&pending).Error; err != nil {
+		log.Print("Could not recover pending welcome notifications")
+		return
+	}
+	for _, record := range pending {
+		d.queueWelcome(record)
+	}
+}
+
+func enqueueWelcomeNotification(user AuthUser) {
+	if auth.db == nil || strings.TrimSpace(user.PublicUserID) == "" || strings.TrimSpace(user.Email) == "" {
+		return
+	}
+	name := strings.TrimSpace(user.Name)
+	if name == "" {
+		name = user.Email
+	}
+	record := WelcomeNotification{
+		PublicUserID: user.PublicUserID, Recipient: user.Email, Name: name, Role: user.Role,
+		Status: welcomePending, CreatedAt: time.Now().UTC(),
+	}
+	if err := auth.db.Where("public_user_id = ?", user.PublicUserID).FirstOrCreate(&record).Error; err != nil {
+		log.Print("Could not persist welcome notification")
+		return
+	}
+	if notifications != nil && record.Status == welcomePending {
+		notifications.queueWelcome(record)
 	}
 }
 

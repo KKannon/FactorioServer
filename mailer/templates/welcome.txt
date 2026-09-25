@@ -1,0 +1,8 @@
+Bem-vindo, {{{ACTOR_TEXT}}}!
+
+Seu acesso ao Factorio Server Manager foi conectado com sucesso.
+Perfil de acesso: {{{ROLE_TEXT}}}
+
+Acesse o painel: {{{PANEL_URL}}}
+
+Este e-mail é enviado uma única vez no seu primeiro acesso.

@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Factorio-style resource controls with official game icons and 17%-600% multipliers.
 - Backend-only StupidMailCenter notifications with persistent, branded templates
   for server lifecycle, worlds/backups, player access, and system changes.
+- Idempotent welcome email on each OIDC user's first authenticated access, with
+  persistent delivery state and automatic retry.
 
 ### Changed
 - Destructive save and server operations now use non-GET HTTP methods.

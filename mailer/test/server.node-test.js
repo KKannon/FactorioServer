@@ -1,14 +1,27 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { createMailerServer, variablesFor } from "../src/server.js";
-import { eventDefinitions } from "../src/templates.js";
+import { eventDefinitions, loadTemplates, renderTemplate } from "../src/templates.js";
 
 test("HTML variables are escaped while text remains readable", () => {
   const values = variablesFor({ actorName: "<Admin>", actorRole: "owner", resource: "save & world", occurredAt: "2026-09-25T12:00:00Z" }, eventDefinitions.CreateSaveBackup);
   assert.equal(values.ACTOR_HTML, "&lt;Admin&gt;");
   assert.equal(values.ACTOR_TEXT, "<Admin>");
   assert.equal(values.RESOURCE_HTML, "save &amp; world");
+});
+
+test("welcome template renders the first-login message without placeholders", async () => {
+  const templateDir = fileURLToPath(new URL("../templates", import.meta.url));
+  const templates = await loadTemplates({ templateDir });
+  const definition = eventDefinitions.UserWelcome;
+  const values = variablesFor({ actorName: "Player", actorRole: "member", resource: "Factorio Server Manager", occurredAt: "2026-09-25T12:00:00Z" }, definition);
+  const rendered = renderTemplate(templates[definition.template], values);
+  assert.match(rendered.subject, /Bem-vindo/);
+  assert.match(rendered.html, /Bem-vindo, Player/);
+  assert.match(rendered.text, /enviado uma única vez/);
+  assert.doesNotMatch(`${rendered.subject}${rendered.html}${rendered.text}`, /\{\{\{/);
 });
 
 test("notification endpoint authenticates and delegates to the library service", async (t) => {

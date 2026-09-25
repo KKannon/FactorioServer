@@ -44,3 +44,31 @@ func TestNotificationMiddlewareDoesNotQueueFailedEvent(t *testing.T) {
 	})).ServeHTTP(recorder, request)
 	require.Len(t, notifications.queue, 0)
 }
+
+func TestWelcomeNotificationQueuesOnlyOncePerUser(t *testing.T) {
+	db := testDB(t)
+	require.NoError(t, db.AutoMigrate(&WelcomeNotification{}))
+	previousAuth := auth
+	previousNotifications := notifications
+	auth.db = db
+	notifications = &notificationDispatcher{db: db, queue: make(chan notificationPayload, 2)}
+	t.Cleanup(func() {
+		auth = previousAuth
+		notifications = previousNotifications
+	})
+
+	user := AuthUser{PublicUserID: "user-public-id", Email: "player@example.com", Name: "Player", Role: "member"}
+	enqueueWelcomeNotification(user)
+	enqueueWelcomeNotification(user)
+
+	require.Len(t, notifications.queue, 1)
+	payload := <-notifications.queue
+	require.Equal(t, "UserWelcome", payload.Event)
+	require.Equal(t, user.Email, payload.Recipient)
+	require.Equal(t, user.PublicUserID, payload.WelcomeUserID)
+	require.Equal(t, welcomeIdempotencyKey(user.PublicUserID), payload.IdempotencyKey)
+
+	var record WelcomeNotification
+	require.NoError(t, db.First(&record, "public_user_id = ?", user.PublicUserID).Error)
+	require.Equal(t, welcomeQueued, record.Status)
+}

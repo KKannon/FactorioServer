@@ -121,7 +121,7 @@ func SetupAuth() {
 	if err != nil {
 		log.Fatalf("open authentication database: %v", err)
 	}
-	if err := db.AutoMigrate(&LoginAttempt{}, &OIDCSession{}); err != nil {
+	if err := db.AutoMigrate(&LoginAttempt{}, &OIDCSession{}, &WelcomeNotification{}); err != nil {
 		log.Fatalf("migrate authentication database: %v", err)
 	}
 	block, err := aes.NewCipher(key[:32])
@@ -470,6 +470,7 @@ func OIDCCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unable to create session", http.StatusInternalServerError)
 		return
 	}
+	enqueueWelcomeNotification(user)
 	http.Redirect(w, r, attempt.ReturnPath, http.StatusSeeOther)
 }
 

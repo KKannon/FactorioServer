@@ -27,8 +27,11 @@ printf '\nSTUPID_MAIL_INTERNAL_TOKEN=%s\n' "$(openssl rand -hex 32)" >> .env
 
 Email delivery runs in the private `mailer` service; no mailer port is exposed
 to the host or Cloudflare. It uses the vendored, pinned
-`lib-stupidmailjavascript` backend client and four backend-owned templates:
-server lifecycle, worlds/backups, player access, and system changes. Successful
+`lib-stupidmailjavascript` backend client and five backend-owned templates:
+first-access welcome, server lifecycle, worlds/backups, player access, and
+system changes. A welcome email is recorded in the persistent SQLite database
+and sent exactly once per OIDC user, with automatic retry after a delivery or
+service failure. Successful
 sensitive actions notify the authenticated operator at the email supplied by
 OIDC; delivery failures are logged but never roll back the completed Factorio
 action. The API key only needs the `email:send` scope.

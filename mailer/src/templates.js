@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 
 export const eventDefinitions = Object.freeze({
   MailIntegrationTest: { template: "system", action: "Teste de integração de e-mail", resource: "StupidMailCenter", status: "Concluído" },
+  UserWelcome: { template: "welcome", action: "Bem-vindo ao Factorio Server Manager", resource: "Factorio Server Manager", status: "Conta conectada" },
   StartServer: { template: "lifecycle", action: "Inicialização do servidor solicitada", resource: "Servidor Factorio", status: "Em andamento" },
   StopServer: { template: "lifecycle", action: "Parada do servidor solicitada", resource: "Servidor Factorio", status: "Em andamento" },
   RestartServer: { template: "lifecycle", action: "Reinicialização do servidor solicitada", resource: "Servidor Factorio", status: "Em andamento" },
@@ -24,6 +25,7 @@ export const eventDefinitions = Object.freeze({
 });
 
 const templateDefinitions = Object.freeze({
+  welcome: { name: "factorio-user-welcome-v1", subject: "Bem-vindo ao Factorio Server Manager", file: "welcome" },
   lifecycle: { name: "factorio-server-lifecycle-v1", subject: "[Factorio] {{{ACTION}}}", file: "lifecycle" },
   world: { name: "factorio-world-operation-v1", subject: "[Factorio] {{{ACTION}}}", file: "world" },
   access: { name: "factorio-access-change-v1", subject: "[Factorio] Alteração de acesso", file: "access" },

@@ -16,6 +16,7 @@ This tool runs on a Factorio server and allows management of the Factorio server
 * Authentication for protecting against unauthorized users
 * Transactional email notifications for server lifecycle, world backups,
   player access, version, and settings changes.
+* One-time welcome email when an OIDC user signs in for the first time.
 * Available as a Docker container
 
 #### Manage Factorio Server
