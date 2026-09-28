@@ -136,12 +136,23 @@ func buildPlayerBridgeArchive() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+// PlayerBridgeArchive returns the exact private mod archive used by the
+// server. Clients need this file because the bridge is not published on the
+// Factorio mod portal and therefore cannot be synchronized automatically.
+func PlayerBridgeArchive() ([]byte, string, error) {
+	archive, err := buildPlayerBridgeArchive()
+	if err != nil {
+		return nil, "", err
+	}
+	return archive, PlayerBridgeName + "_" + playerBridgeVersion + ".zip", nil
+}
+
 func InstallPlayerBridge() error {
 	config := bootstrap.GetConfig()
 	if err := os.MkdirAll(config.FactorioModsDir, 0755); err != nil {
 		return err
 	}
-	archive, err := buildPlayerBridgeArchive()
+	archive, filename, err := PlayerBridgeArchive()
 	if err != nil {
 		return fmt.Errorf("build player bridge: %w", err)
 	}
@@ -149,7 +160,6 @@ func InstallPlayerBridge() error {
 	if err != nil {
 		return err
 	}
-	filename := PlayerBridgeName + "_" + playerBridgeVersion + ".zip"
 	if err := mods.createMod(PlayerBridgeName, filename, bytes.NewReader(archive)); err != nil {
 		return fmt.Errorf("install player bridge: %w", err)
 	}

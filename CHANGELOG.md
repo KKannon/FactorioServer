@@ -39,6 +39,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   protection for every state-changing API request.
 - Actionable failure notifications for Factorio startup and restart errors,
   including the safe process-reported cause instead of only the exit status.
+- Authenticated client download for the private player-intelligence bridge mod,
+  preventing multiplayer `ModsMismatch` failures when it is enabled.
+- Server settings labels, descriptions, visibility, and command policies in
+  Portuguese, English, or Spanish according to each user's preferences.
 
 ### Changed
 - Destructive save and server operations now use non-GET HTTP methods.

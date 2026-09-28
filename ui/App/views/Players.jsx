@@ -60,6 +60,10 @@ const PlayerIntelligence = ({canManage, serverStatus}) => {
     const unavailable = data.reason === 'bridge_not_installed' ? t('players.bridgeMissing')
         : data.reason === 'bridge_disabled' ? t('players.bridgeDisabled') : t('players.bridgeUnavailable');
     return <Panel className="mb-6" title={t('players.intelligence')} content={<>
+        {data.bridge?.installed && <div className="player-bridge-state mb-4">
+            <div><strong>{t('players.bridgeClientRequired')}</strong><p>{t('players.bridgeDownloadHelp', {version: data.bridge.version || '1.0.0'})}</p></div>
+            <a href={players.bridgeDownloadURL} download className="py-1 px-2 bg-gray-light hover:glow-orange hover:bg-orange inline-block accentuated text-black font-bold">{t('players.bridgeDownload')}</a>
+        </div>}
         {!data.available && <div className="player-bridge-state">
             <div><strong>{unavailable}</strong><p>{t('players.bridgeExplanation')}</p></div>
             {canManage && !data.bridge?.installed && <Button isLoading={installing} isDisabled={serverStatus?.running} onClick={install}>{t('players.bridgeInstall')}</Button>}

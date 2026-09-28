@@ -473,6 +473,12 @@ var apiRoutes = Routes{
 		InstallPlayerBridge,
 		true,
 	}, {
+		"DownloadPlayerBridge",
+		"GET",
+		"/players/intelligence/bridge/download",
+		DownloadPlayerBridge,
+		false,
+	}, {
 		"AddWhitelistPlayer",
 		"POST",
 		"/players/whitelist",

@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/OpenFactorioServerManager/factorio-server-manager/factorio"
@@ -173,4 +174,18 @@ func InstallPlayerBridge(w http.ResponseWriter, _ *http.Request) {
 	}
 	w.WriteHeader(http.StatusCreated)
 	WriteResponse(w, factorio.GetPlayerBridgeStatus())
+}
+
+func DownloadPlayerBridge(w http.ResponseWriter, _ *http.Request) {
+	archive, filename, err := factorio.PlayerBridgeArchive()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Could not build the player intelligence bridge: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	w.Header().Set("Content-Length", strconv.Itoa(len(archive)))
+	w.Header().Set("Cache-Control", "private, no-store")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(archive)
 }

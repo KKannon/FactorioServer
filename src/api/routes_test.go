@@ -1,6 +1,8 @@
 package api
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -124,5 +126,31 @@ func TestReadRequestBodyRejectsOversizedJSON(t *testing.T) {
 	}
 	if recorder.Code != http.StatusRequestEntityTooLarge {
 		t.Fatalf("oversized body status = %d", recorder.Code)
+	}
+}
+
+func TestDownloadPlayerBridgeReturnsInstallableArchive(t *testing.T) {
+	request := httptest.NewRequest(http.MethodGet, "/api/players/intelligence/bridge/download", nil)
+	recorder := httptest.NewRecorder()
+	DownloadPlayerBridge(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("download status = %d", recorder.Code)
+	}
+	if disposition := recorder.Header().Get("Content-Disposition"); disposition != `attachment; filename="factorio-server-manager-bridge_1.0.0.zip"` {
+		t.Fatalf("Content-Disposition = %q", disposition)
+	}
+	reader, err := zip.NewReader(bytes.NewReader(recorder.Body.Bytes()), int64(recorder.Body.Len()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundInfo := false
+	for _, file := range reader.File {
+		if file.Name == "factorio-server-manager-bridge_1.0.0/info.json" {
+			foundInfo = true
+		}
+	}
+	if !foundInfo {
+		t.Fatal("downloaded bridge archive does not contain info.json")
 	}
 }
