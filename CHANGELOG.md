@@ -61,6 +61,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   e-mail addresses, cookies, credentials, tokens, or RCON secrets.
 
 ### Fixed
+- Player bridge health collection now uses the Factorio 2.x `LuaEntity`
+  runtime API, preventing `LuaEntityPrototype.max_health` startup failures.
+- Installed private bridges are upgraded automatically with the manager while
+  servers that never enabled player intelligence remain untouched.
 - Map previews now render from their generated browser blob under the production
   content security policy, and resource percentages can be edited directly
   while remaining synchronized with their sliders.

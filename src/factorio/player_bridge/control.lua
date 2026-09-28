@@ -79,7 +79,10 @@ local function player_snapshot(player)
     local max_health = nil
     if character and character.valid then
         health = character.health
-        max_health = character.prototype.max_health + player.character_health_bonus
+        -- LuaEntity::max_health already includes the character modifiers that
+        -- apply to this concrete entity. LuaEntityPrototype::max_health was
+        -- removed in Factorio 2.x in favor of get_max_health(quality).
+        max_health = character.max_health
     end
     return {
         name = player.name,

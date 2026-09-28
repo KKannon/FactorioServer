@@ -42,9 +42,10 @@ const PlayerIntelligence = ({canManage, serverStatus}) => {
         return () => { active = false; clearInterval(timer); };
     }, []);
     const install = async () => {
+        const updating = data?.bridge?.update_available;
         const confirmation = await Swal.fire({
-            icon: 'warning', title: t('players.bridgeInstallTitle'), html: t('players.bridgeInstallText'),
-            showCancelButton: true, confirmButtonText: t('players.bridgeInstall'), cancelButtonText: t('controls.cancel'),
+            icon: 'warning', title: t(updating ? 'players.bridgeUpdateTitle' : 'players.bridgeInstallTitle'), html: t(updating ? 'players.bridgeUpdateText' : 'players.bridgeInstallText'),
+            showCancelButton: true, confirmButtonText: t(updating ? 'players.bridgeUpdate' : 'players.bridgeInstall'), cancelButtonText: t('controls.cancel'),
             confirmButtonColor: '#d97706', cancelButtonColor: '#6b7280',
         });
         if (!confirmation.isConfirmed) return;
@@ -61,14 +62,17 @@ const PlayerIntelligence = ({canManage, serverStatus}) => {
         : data.reason === 'bridge_disabled' ? t('players.bridgeDisabled') : t('players.bridgeUnavailable');
     return <Panel className="mb-6" title={t('players.intelligence')} content={<>
         {data.bridge?.installed && <div className="player-bridge-state mb-4">
-            <div><strong>{t('players.bridgeClientRequired')}</strong><p>{t('players.bridgeDownloadHelp', {version: data.bridge.version || '1.0.0'})}</p></div>
-            <a href={players.bridgeDownloadURL} download className="py-1 px-2 bg-gray-light hover:glow-orange hover:bg-orange inline-block accentuated text-black font-bold">{t('players.bridgeDownload')}</a>
+            <div><strong>{t('players.bridgeClientRequired')}</strong><p>{t('players.bridgeDownloadHelp', {version: data.bridge.available_version || data.bridge.version})}</p></div>
+            <div className="flex flex-wrap gap-2">
+                {canManage && data.bridge.update_available && <Button isLoading={installing} isDisabled={serverStatus?.running} onClick={install}>{t('players.bridgeUpdate')}</Button>}
+                <a href={players.bridgeDownloadURL} download className="py-1 px-2 bg-gray-light hover:glow-orange hover:bg-orange inline-block accentuated text-black font-bold">{t('players.bridgeDownload')}</a>
+            </div>
         </div>}
         {!data.available && <div className="player-bridge-state">
             <div><strong>{unavailable}</strong><p>{t('players.bridgeExplanation')}</p></div>
             {canManage && !data.bridge?.installed && <Button isLoading={installing} isDisabled={serverStatus?.running} onClick={install}>{t('players.bridgeInstall')}</Button>}
         </div>}
-        {canManage && !data.bridge?.installed && serverStatus?.running && <p className="text-orange mt-2">{t('players.bridgeStopRequired')}</p>}
+        {canManage && (!data.bridge?.installed || data.bridge?.update_available) && serverStatus?.running && <p className="text-orange mt-2">{t('players.bridgeStopRequired')}</p>}
         {data.available && <>
             <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
                 <div><strong>{data.scope === 'all' ? t('players.allProfiles') : t('players.ownProfile')}</strong><br/><small>{t('players.bridgeSource')}</small></div>

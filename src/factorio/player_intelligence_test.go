@@ -3,6 +3,7 @@ package factorio
 import (
 	"archive/zip"
 	"bytes"
+	"io"
 	"strings"
 	"testing"
 )
@@ -12,18 +13,32 @@ func TestBuildPlayerBridgeArchiveContainsFactorioMod(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if filename != "factorio-server-manager-bridge_1.0.0.zip" {
+	if filename != "factorio-server-manager-bridge_1.0.1.zip" {
 		t.Fatalf("unexpected bridge filename %q", filename)
 	}
 	reader, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
 	if err != nil {
 		t.Fatal(err)
 	}
+	prefix := PlayerBridgeName + "_" + playerBridgeVersion + "/"
 	found := map[string]bool{}
 	for _, file := range reader.File {
 		found[file.Name] = true
+		if file.Name == prefix+"control.lua" {
+			contents, openErr := file.Open()
+			if openErr != nil {
+				t.Fatal(openErr)
+			}
+			control, readErr := io.ReadAll(contents)
+			_ = contents.Close()
+			if readErr != nil {
+				t.Fatal(readErr)
+			}
+			if !bytes.Contains(control, []byte("character.max_health")) || bytes.Contains(control, []byte("character.prototype.max_health")) {
+				t.Fatal("bridge must use the Factorio 2.x LuaEntity max_health API")
+			}
+		}
 	}
-	prefix := PlayerBridgeName + "_" + playerBridgeVersion + "/"
 	for _, required := range []string{prefix + "info.json", prefix + "control.lua"} {
 		if !found[required] {
 			t.Fatalf("bridge archive does not contain %s", required)

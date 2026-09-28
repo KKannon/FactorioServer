@@ -20,7 +20,7 @@ import (
 
 const (
 	PlayerBridgeName     = "factorio-server-manager-bridge"
-	playerBridgeVersion  = "1.0.0"
+	playerBridgeVersion  = "1.0.1"
 	playerBridgeResponse = "FSM_PLAYER_INTELLIGENCE:"
 )
 
@@ -102,9 +102,11 @@ type PlayerIntelligenceSnapshot struct {
 }
 
 type PlayerBridgeStatus struct {
-	Installed bool   `json:"installed"`
-	Enabled   bool   `json:"enabled"`
-	Version   string `json:"version,omitempty"`
+	Installed        bool   `json:"installed"`
+	Enabled          bool   `json:"enabled"`
+	Version          string `json:"version,omitempty"`
+	AvailableVersion string `json:"available_version"`
+	UpdateAvailable  bool   `json:"update_available"`
 }
 
 func buildPlayerBridgeArchive() ([]byte, error) {
@@ -166,8 +168,22 @@ func InstallPlayerBridge() error {
 	return nil
 }
 
+// UpdateInstalledPlayerBridge keeps the bundled private bridge compatible with
+// the manager release. It does not install the bridge for servers that have
+// never opted into player intelligence.
+func UpdateInstalledPlayerBridge() (bool, error) {
+	status := GetPlayerBridgeStatus()
+	if !status.Installed || !status.UpdateAvailable {
+		return false, nil
+	}
+	if err := InstallPlayerBridge(); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func GetPlayerBridgeStatus() PlayerBridgeStatus {
-	status := PlayerBridgeStatus{}
+	status := PlayerBridgeStatus{AvailableVersion: playerBridgeVersion}
 	mods, err := NewMods(bootstrap.GetConfig().FactorioModsDir)
 	if err != nil {
 		return status
@@ -177,6 +193,7 @@ func GetPlayerBridgeStatus() PlayerBridgeStatus {
 			status.Installed = true
 			status.Enabled = installed.Enabled
 			status.Version = installed.Version
+			status.UpdateAvailable = installed.Version != playerBridgeVersion
 			return status
 		}
 	}

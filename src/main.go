@@ -16,6 +16,11 @@ func main() {
 
 	// setup the required files for the mods
 	factorio.ModStartUp()
+	if updated, err := factorio.UpdateInstalledPlayerBridge(); err != nil {
+		log.Printf("Could not update the installed player bridge: %v", err)
+	} else if updated {
+		log.Printf("Updated the installed player bridge to the bundled version")
+	}
 
 	// Initialize Factorio Server struct
 	err := factorio.NewFactorioServer()
