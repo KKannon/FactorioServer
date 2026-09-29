@@ -58,18 +58,19 @@ const Layout = ({identity, handleLogout, serverStatus}) => {
                     </div>
                 </div>
                 <div className={isNavCollapsed ? "hidden md:block" : "block"}>
-                    <div className="py-4 px-2 accentuated">
+                    {identity?.can_manage && <div className="py-4 px-2 accentuated">
                         <h1 className="text-dirty-white text-lg mb-2 mx-4">{t('status')}</h1>
                         <div className="mx-4 mb-4 text-center">
                             <Status info={serverStatus}/>
                         </div>
-                    </div>
+                    </div>}
                     <div className="py-4 px-2 accentuated">
                         <h1 className="text-dirty-white text-lg mb-2 mx-4">{t('management')}</h1>
                         <div className="text-white text-center rounded-sm bg-black shadow-inner mx-4 p-1">
                             <Link to="/">{t('nav.controls')}</Link>
                             <Link to="/saves">{t('nav.saves')}</Link>
-                            <Link to="/players" last={!identity?.can_manage}>{t('nav.players')}</Link>
+                            <Link to="/players">{t('nav.players')}</Link>
+                            <Link to="/factorio-client" last={!identity?.can_manage}>{t('nav.factorioClient')}</Link>
                             {identity?.can_manage && <>
                                 <Link to="/mods">{t('nav.mods')}</Link>
                                 <Link to="/server-settings">{t('nav.serverSettings')}</Link>

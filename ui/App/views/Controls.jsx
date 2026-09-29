@@ -171,7 +171,7 @@ const Controls = ({serverStatus, identity, onServerStatusChange}) => {
 
     return (
         <>
-        <form onSubmit={handleSubmit(startServer)}>
+        {canManage && <form onSubmit={handleSubmit(startServer)}>
         <Panel
             title={t('controls.title')}
             content={
@@ -270,8 +270,8 @@ const Controls = ({serverStatus, identity, onServerStatusChange}) => {
                 </div> : null
             }
         />
-        </form>
-        {serverStatus.last_error && <div className="bg-red text-white rounded px-4 py-3 mb-4">{serverStatus.last_error}</div>}
+        </form>}
+        {canManage && serverStatus.last_error && <div className="bg-red text-white rounded px-4 py-3 mb-4">{serverStatus.last_error}</div>}
         <Panel
             className="mt-6"
             title={t('access.title')}

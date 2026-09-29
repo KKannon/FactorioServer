@@ -67,6 +67,7 @@ const ServerSettingsModern = () => {
             else if (key === 'allow_commands') {
                 normalized[key] = data[key] === 'true' ? true : data[key] === 'false' ? false : data[key];
             } else if (typeof original === 'number') normalized[key] = Number(data[key]);
+            else if (key === 'require_user_verification') normalized[key] = !Boolean(data.allow_unauthenticated_players);
             else if (typeof original === 'boolean') normalized[key] = Boolean(data[key]);
             else normalized[key] = data[key];
         });
@@ -80,6 +81,11 @@ const ServerSettingsModern = () => {
 
     const field = (name, label, description) => {
         const value = settings[name];
+        if (name === 'require_user_verification') return <label className="pirate-access-switch" title={description}>
+            <input type="checkbox" defaultChecked={!value} {...register('allow_unauthenticated_players')}/>
+            <span className="themed-switch" aria-hidden="true"><span/></span>
+            <span><strong>{label}</strong><small>{description}</small></span>
+        </label>;
         if (Array.isArray(value)) return <ListEditor label={label} values={lists[name] || []} onChange={next => setLists(current => ({...current, [name]: next}))} description={description}/>;
         if (value && typeof value === 'object' && name.includes('visibility')) return <div className="flex flex-wrap gap-4">
             {Object.keys(value).map(key => <label className="inline-flex gap-2 items-center" key={key}><input type="checkbox" defaultChecked={value[key]} {...register(`${name}.${key}`)}/>{localizedVisibility(key)}</label>)}
@@ -100,10 +106,11 @@ const ServerSettingsModern = () => {
                     {names.map(name => {
                         const localized = localizedServerSetting(name, settings[`_comment_${name}`] || '');
                         const isBoolean = typeof settings[name] === 'boolean' && name !== 'allow_commands';
+                        const isPirateSwitch = name === 'require_user_verification';
                         return <div className="setting-field" key={name}>
                             {!isBoolean && <label className="block text-sm font-bold mb-2" title={localized.description}>{localized.label} {localized.description && <span className="setting-help" aria-label={localized.description}>?</span>}</label>}
                             {field(name, localized.label, localized.description)}
-                            {localized.description && <p className="text-xs italic mt-1 opacity-80">{localized.description}</p>}
+                            {localized.description && !isPirateSwitch && <p className="text-xs italic mt-1 opacity-80">{localized.description}</p>}
                         </div>;
                     })}
                 </div>

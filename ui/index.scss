@@ -16,6 +16,15 @@ html[data-compact="true"] .container { max-width: 90rem; }
 .server-status-state { margin: 0 1rem; padding: 2rem; background: #333; color: #ffe6c0; text-align: center; }
 .setting-field { padding: 1rem; background: rgba(0, 0, 0, .16); border: 1px solid rgba(255, 255, 255, .08); }
 .setting-help { display: inline-grid; place-items: center; width: 1.15rem; height: 1.15rem; margin-left: .25rem; border-radius: 9999px; background: var(--accent-color); color: #111; cursor: help; }
+.pirate-access-switch { display: flex; align-items: center; gap: .85rem; padding: 1rem; border: 1px solid rgba(227, 152, 39, .75); background: linear-gradient(135deg, rgba(227, 152, 39, .18), rgba(0, 0, 0, .2)); cursor: pointer; }
+.pirate-access-switch > input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.pirate-access-switch strong, .pirate-access-switch small { display: block; }
+.pirate-access-switch small { margin-top: .25rem; opacity: .75; font-weight: 400; }
+.themed-switch { position: relative; width: 3.3rem; height: 1.65rem; flex: 0 0 3.3rem; border: 2px solid #171717; border-radius: 9999px; background: #5a5a5a; box-shadow: inset 0 2px 4px rgba(0,0,0,.65); transition: .18s ease; }
+.themed-switch span { position: absolute; top: .14rem; left: .15rem; width: 1.1rem; height: 1.1rem; border-radius: 50%; background: linear-gradient(#f0f0f0, #929292); box-shadow: 0 1px 3px #000; transition: .18s ease; }
+.pirate-access-switch > input:checked + .themed-switch { background: var(--accent-color); }
+.pirate-access-switch > input:checked + .themed-switch span { transform: translateX(1.6rem); }
+.pirate-access-switch > input:focus-visible + .themed-switch { outline: 3px solid rgba(227, 152, 39, .55); outline-offset: 2px; }
 .setting-chip { display: inline-flex; align-items: center; gap: .5rem; padding: .35rem .6rem; background: #222; border: 1px solid rgba(255,255,255,.16); }
 .setting-chip button { color: #ff7272; font-size: 1.1rem; line-height: 1; }
 .metric-card { position: relative; min-height: 9rem; overflow: hidden; padding: 1rem; background: rgba(0,0,0,.2); border: 1px solid rgba(255,255,255,.1); }

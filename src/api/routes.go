@@ -77,6 +77,8 @@ func NewRouter() *mux.Router {
 	mainRouter.Path("/auth/login").Methods("GET").Name("OIDCLogin").HandlerFunc(BeginOIDCLogin)
 	mainRouter.Path("/auth/callback").Methods("GET").Name("OIDCCallback").HandlerFunc(OIDCCallback)
 	mainRouter.Path("/auth/logout").Methods("GET").Name("OIDCLogout").HandlerFunc(OIDCLogout)
+	mainRouter.Path("/client-api/v1/manifest").Methods("GET").Name("FactorioClientManifest").HandlerFunc(GetFactorioClientManifest)
+	mainRouter.Path("/client-api/v1/mods/download").Methods("GET").Name("FactorioClientModBundle").HandlerFunc(DownloadFactorioClientModBundle)
 
 	// Route for initializing websocket connection
 	// Clients connecting to /ws establish websocket connection by upgrading
@@ -111,6 +113,10 @@ func NewRouter() *mux.Router {
 		Methods("GET").
 		Name("Players").
 		Handler(http.StripPrefix("/players", http.FileServer(http.Dir("./app/"))))
+	subRouter.Path("/factorio-client").
+		Methods("GET").
+		Name("Factorio Client").
+		Handler(http.StripPrefix("/factorio-client", http.FileServer(http.Dir("./app/"))))
 	subRouter.Path("/mods").
 		Methods("GET").
 		Name("Mods").
@@ -220,8 +226,9 @@ var managementRoutes = map[string]bool{
 	"InstallFactorioVersion": true,
 	"GetPlayerAccess":        true, "AddWhitelistPlayer": true, "RemoveWhitelistPlayer": true,
 	"AddAdmin": true, "RemoveAdmin": true, "AddBan": true, "RemoveBan": true, "UpdateWhitelistPolicy": true,
-	"InstallPlayerBridge": true,
-	"GetAuditEvents":      true, "GetSecurityOverview": true,
+	"InstallPlayerBridge":     true,
+	"GetFactorioClientConfig": true, "UpdateFactorioClientConfig": true,
+	"GetAuditEvents": true, "GetSecurityOverview": true,
 	"ModPortalListAllMods": true, "ModPortalGetModInfo": true, "ModPortalLoginStatus": true,
 	"ModPortalInstallMod": true, "ModPortalLogin": true, "ModPortalLogout": true, "ModPortalInstallMultiple": true,
 	"ListInstalledMods": true, "ToggleMod": true, "DeleteMod": true, "DeleteAllMods": true, "UpdateMod": true, "UploadMod": true, "DownloadMods": true,
@@ -244,6 +251,18 @@ var destructiveRoutes = map[string]bool{
 // All routes are prefixed with /api
 var apiRoutes = Routes{
 	{
+		"GetFactorioClientConfig",
+		"GET",
+		"/client/config",
+		GetFactorioClientConfig,
+		false,
+	}, {
+		"UpdateFactorioClientConfig",
+		"POST",
+		"/client/config",
+		UpdateFactorioClientConfig,
+		false,
+	}, {
 		"GetAuditEvents",
 		"GET",
 		"/audit",

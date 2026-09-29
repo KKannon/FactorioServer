@@ -47,9 +47,9 @@ const fields = {
         es: ['Contraseña de la partida', 'Contraseña opcional que los jugadores deben introducir para entrar.'],
     },
     require_user_verification: {
-        en: ['Require user verification', 'Only clients authenticated with a valid Factorio.com account may join. Required for public games.'],
-        pt: ['Exigir verificação do usuário', 'Somente clientes autenticados com uma conta válida do Factorio.com podem entrar. Obrigatório para jogos públicos.'],
-        es: ['Exigir verificación del usuario', 'Solo pueden entrar clientes autenticados con una cuenta válida de Factorio.com. Obligatorio para partidas públicas.'],
+        en: ['Allow unauthenticated players (pirate)', 'Disables Factorio.com account verification. Use only on private or LAN servers and with legally obtained copies. Public games require verification.'],
+        pt: ['Permitir jogadores não autenticados (pirata)', 'Desativa a verificação da conta Factorio.com. Use apenas em servidores privados ou LAN e com cópias obtidas legalmente. Jogos públicos exigem verificação.'],
+        es: ['Permitir jugadores no autenticados (pirata)', 'Desactiva la verificación de la cuenta Factorio.com. Úsalo solo en servidores privados o LAN y con copias obtenidas legalmente. Las partidas públicas exigen verificación.'],
     },
     max_upload_in_kilobytes: {
         en: ['Maximum upload speed', 'Maximum upload speed per player in KB/s. Use 0 for unlimited.'],

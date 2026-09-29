@@ -19,6 +19,7 @@ import ServerStatusGate from "./components/ServerStatusGate";
 import Players from "./views/Players";
 import Monitoring from "./views/Monitoring";
 import Audit from "./views/Audit";
+import FactorioClient from "./views/FactorioClient";
 
 const ProtectedRoute = ({identity}) => identity
     ? <Outlet/>
@@ -149,6 +150,7 @@ const App = () => {
                     <Route index element={<Controls identity={identity} serverStatus={serverStatus} onServerStatusChange={patchServerStatus}/>}/>
                     <Route path="saves" element={<Saves canManage={identity?.can_manage} serverStatus={serverStatus}/>}/>
                     <Route path="players" element={<Players canManage={identity?.can_manage} serverStatus={serverStatus}/>}/>
+                    <Route path="factorio-client" element={<FactorioClient canManage={identity?.can_manage}/>}/>
                     <Route element={<ManagementRoute identity={identity}/> }>
                         <Route path="mods" element={<Mods serverStatus={serverStatus}/>}/>
                         <Route path="server-settings" element={<ServerSettings serverStatus={serverStatus}/>}/>
