@@ -32,6 +32,8 @@ type factorioClientManifest struct {
 	GameHost         string               `json:"game_host"`
 	GamePort         int                  `json:"game_port"`
 	FactorioVersion  string               `json:"factorio_version"`
+	ServerRunning    bool                 `json:"server_running"`
+	ServerState      string               `json:"server_state"`
 	ModsFingerprint  string               `json:"mods_fingerprint"`
 	ModsCount        int                  `json:"mods_count"`
 	Mods             []factorioClientMod  `json:"mods"`
@@ -123,14 +125,15 @@ func GetFactorioClientManifest(w http.ResponseWriter, r *http.Request) {
 	serverIDHash := sha256.Sum256([]byte(strings.ToLower(host) + ":" + fmt.Sprint(port)))
 	manifest := factorioClientManifest{
 		SchemaVersion: 1, ServerID: hex.EncodeToString(serverIDHash[:])[:20], ServerName: host,
-		GameHost: host, GamePort: port, FactorioVersion: fmt.Sprint(status.Version),
+		GameHost: host, GamePort: port, FactorioVersion: fmt.Sprint(status.Version), ServerRunning: status.Running, ServerState: status.State,
 		ModsFingerprint: fingerprint, ModsCount: len(mods), Mods: mods,
 		BundleURL: "/client-api/v1/mods/download", ClientRepository: "https://github.com/Stupid-DLL/Factorio-Client",
 		LaunchOptions: clientConfig,
 	}
-	etag := `"` + fingerprint + `"`
+	statusETag := sha256.Sum256([]byte(fingerprint + "\x00" + status.State + "\x00" + fmt.Sprint(status.Version)))
+	etag := `"` + hex.EncodeToString(statusETag[:]) + `"`
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Cache-Control", "public, max-age=30")
+	w.Header().Set("Cache-Control", "public, max-age=5")
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	w.Header().Set("ETag", etag)
 	if r.Header.Get("If-None-Match") == etag {

@@ -150,7 +150,7 @@ const App = () => {
                     <Route index element={<Controls identity={identity} serverStatus={serverStatus} onServerStatusChange={patchServerStatus}/>}/>
                     <Route path="saves" element={<Saves canManage={identity?.can_manage} serverStatus={serverStatus}/>}/>
                     <Route path="players" element={<Players canManage={identity?.can_manage} serverStatus={serverStatus}/>}/>
-                    <Route path="factorio-client" element={<FactorioClient canManage={identity?.can_manage}/>}/>
+                    <Route path="factorio-client" element={<FactorioClient canManage={identity?.can_manage} identity={identity}/>}/>
                     <Route element={<ManagementRoute identity={identity}/> }>
                         <Route path="mods" element={<Mods serverStatus={serverStatus}/>}/>
                         <Route path="server-settings" element={<ServerSettings serverStatus={serverStatus}/>}/>

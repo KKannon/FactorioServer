@@ -2,7 +2,7 @@ import React, {useEffect, useState} from "react";
 import {NavLink, Outlet} from "react-router-dom";
 import Button from "./Button";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faBars} from "@fortawesome/free-solid-svg-icons";
+import {faBars, faGear} from "@fortawesome/free-solid-svg-icons";
 import {Flash} from "./Flash";
 import Avatar from "./Avatar";
 import {t} from "../../identity/preferences";
@@ -92,6 +92,7 @@ const Layout = ({identity, handleLogout, serverStatus}) => {
                         <div className="identity-summary mx-4 mb-3">
                             <Avatar user={identity}/>
                             <div className="identity-copy"><strong>{identity?.name || identity?.email}</strong><small>{identity?.role}</small></div>
+                            <a href="https://authenticator.stupidll.com/dashboard/profile" target="_blank" rel="noreferrer" className="ml-auto text-dirty-white hover:text-orange p-2" title={t('profile.edit')} aria-label={t('profile.edit')}><FontAwesomeIcon icon={faGear}/></a>
                         </div>
                         <div className="text-white text-center rounded-sm bg-black shadow-inner mx-4 p-1">
                             <Button type="danger" className="w-full" onClick={handleLogout}>{t('logout')}</Button>
