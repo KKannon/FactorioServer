@@ -22,6 +22,36 @@ const ItemList = ({title, values = []}) => <div className="player-intelligence-l
         </span>)}</div> : <p className="opacity-60">{t('empty')}</p>}
 </div>;
 
+const ServerModBundle = () => {
+    const [bundle, setBundle] = useState(null);
+    useEffect(() => {
+        let active = true;
+        players.modBundle().then(async next => {
+            if (!active) return;
+            setBundle(next);
+            if (!next.required) return;
+            const storageKey = `fsm-mod-bundle-notice:${next.notice_key || next.fingerprint}`;
+            try {
+                if (window.localStorage.getItem(storageKey)) return;
+                window.localStorage.setItem(storageKey, '1');
+            } catch (_) {}
+            const result = await Swal.fire({
+                icon: 'info', title: t('players.modsRequiredTitle'),
+                html: t('players.modsRequiredText', {count: next.count}),
+                showCancelButton: true, confirmButtonText: t('players.downloadMods'), cancelButtonText: t('players.downloadLater'),
+                confirmButtonColor: '#d97706', cancelButtonColor: '#6b7280',
+            });
+            if (result.isConfirmed) window.location.assign(players.modBundleDownloadURL);
+        }).catch(() => {});
+        return () => { active = false; };
+    }, []);
+    if (!bundle?.required) return null;
+    return <Panel className="mb-6" title={t('players.serverMods')} content={<div className="flex flex-wrap justify-between items-center gap-3">
+        <div><strong>{t('players.modsRequiredTitle')}</strong><p>{t('players.modsBundleHelp', {count: bundle.count})}</p></div>
+        <a href={players.modBundleDownloadURL} download={bundle.filename} className="py-2 px-3 bg-orange hover:glow-orange inline-block accentuated text-black font-bold">{t('players.downloadMods')}</a>
+    </div>}/>;
+};
+
 const PlayerIntelligence = ({canManage, serverStatus}) => {
     const [data, setData] = useState(null);
     const [selected, setSelected] = useState('');
@@ -60,17 +90,11 @@ const PlayerIntelligence = ({canManage, serverStatus}) => {
     const player = data.players?.find(value => value.name === selected);
     const unavailable = data.reason === 'bridge_not_installed' ? t('players.bridgeMissing')
         : data.reason === 'bridge_disabled' ? t('players.bridgeDisabled') : t('players.bridgeUnavailable');
+    if (!data.available && !canManage) return null;
     return <Panel className="mb-6" title={t('players.intelligence')} content={<>
-        {data.bridge?.installed && <div className="player-bridge-state mb-4">
-            <div><strong>{t('players.bridgeClientRequired')}</strong><p>{t('players.bridgeDownloadHelp', {version: data.bridge.available_version || data.bridge.version})}</p></div>
-            <div className="flex flex-wrap gap-2">
-                {canManage && data.bridge.update_available && <Button isLoading={installing} isDisabled={serverStatus?.running} onClick={install}>{t('players.bridgeUpdate')}</Button>}
-                <a href={players.bridgeDownloadURL} download className="py-1 px-2 bg-gray-light hover:glow-orange hover:bg-orange inline-block accentuated text-black font-bold">{t('players.bridgeDownload')}</a>
-            </div>
-        </div>}
-        {!data.available && <div className="player-bridge-state">
+        {!data.available && canManage && <div className="player-bridge-state">
             <div><strong>{unavailable}</strong><p>{t('players.bridgeExplanation')}</p></div>
-            {canManage && !data.bridge?.installed && <Button isLoading={installing} isDisabled={serverStatus?.running} onClick={install}>{t('players.bridgeInstall')}</Button>}
+            {(!data.bridge?.installed || data.bridge?.update_available) && <Button isLoading={installing} isDisabled={serverStatus?.running} onClick={install}>{t(data.bridge?.update_available ? 'players.bridgeUpdate' : 'players.bridgeInstall')}</Button>}
         </div>}
         {canManage && (!data.bridge?.installed || data.bridge?.update_available) && serverStatus?.running && <p className="text-orange mt-2">{t('players.bridgeStopRequired')}</p>}
         {data.available && <>
@@ -182,8 +206,8 @@ const Players = ({canManage, serverStatus}) => {
         finally { setPolicyBusy(false); }
     };
     return <>
+        <ServerModBundle/>
         <PlayerIntelligence canManage={canManage} serverStatus={serverStatus}/>
-        {!canManage && <Panel title={t('players.accessRestricted')} content={<p>{t('players.accessRestrictedText')}</p>}/>}
         {canManage && !access && <Panel title={t('players.title')} content={<p>{t('loading')}</p>}/>}
         {canManage && access && <>
         <Panel className="mb-6" title={t('players.policy')} content={<label className="flex items-center gap-3">

@@ -479,6 +479,18 @@ var apiRoutes = Routes{
 		DownloadPlayerBridge,
 		false,
 	}, {
+		"GetPlayerModBundleStatus",
+		"GET",
+		"/players/mods",
+		GetPlayerModBundleStatus,
+		false,
+	}, {
+		"DownloadPlayerModBundle",
+		"GET",
+		"/players/mods/download",
+		DownloadPlayerModBundle,
+		false,
+	}, {
 		"AddWhitelistPlayer",
 		"POST",
 		"/players/whitelist",
