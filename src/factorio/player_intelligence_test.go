@@ -73,3 +73,18 @@ func TestVisiblePlayerIntelligenceRestrictsMembersToExactUsername(t *testing.T) 
 		t.Fatalf("manager received %d profiles, want 2", len(visible))
 	}
 }
+
+func TestRCONPacketSupportsPlayerSnapshotsLargerThanFourKilobytes(t *testing.T) {
+	payload := playerBridgeResponse + strings.Repeat("x", 20_000)
+	var packet bytes.Buffer
+	if err := writeRCONPacket(&packet, 27, rconResponsePacket, payload); err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := readRCONPacket(&packet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decoded.id != 27 || decoded.packetType != rconResponsePacket || decoded.payload != payload {
+		t.Fatalf("unexpected decoded RCON packet: id=%d type=%d payload=%d bytes", decoded.id, decoded.packetType, len(decoded.payload))
+	}
+}

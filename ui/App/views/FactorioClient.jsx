@@ -1,8 +1,14 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import Panel from '../components/Panel';
 import Button from '../components/Button';
-import {t} from '../../identity/preferences';
+import {currentLanguage, t} from '../../identity/preferences';
 import factorioClient from '../../api/resources/factorioClient';
+
+const alternativeDownloadCopy = {
+    en: {label: 'Alternative download', help: 'Optional HTTPS address exposed in the client API manifest.'},
+    'pt-BR': {label: 'Download alternativo', help: 'Endereço HTTPS opcional disponibilizado no manifesto da API do cliente.'},
+    'es-ES': {label: 'Descarga alternativa', help: 'Dirección HTTPS opcional publicada en el manifiesto de la API del cliente.'},
+};
 
 const Feature = ({title, children}) => <div className="setting-field">
     <h2 className="font-bold text-dirty-white mb-2">{title}</h2><p className="opacity-80">{children}</p>
@@ -11,6 +17,7 @@ const Feature = ({title, children}) => <div className="setting-field">
 const ClientConfiguration = () => {
     const [config, setConfig] = useState(null);
     const [saving, setSaving] = useState(false);
+    const alternativeText = alternativeDownloadCopy[currentLanguage()] || alternativeDownloadCopy.en;
     useEffect(() => { factorioClient.config().then(setConfig); }, []);
     const update = (name, value) => setConfig(current => ({...current, [name]: value}));
     const save = async event => {
@@ -26,6 +33,7 @@ const ClientConfiguration = () => {
             <label>{t('client.gamePort')}<input type="number" min="1" max="65535" disabled={!config.include_game_port} className="shadow border w-full py-2 px-3 text-black mt-2 disabled:opacity-50" value={config.game_port || ''} onChange={event => update('game_port', event.target.value)}/><small className="block mt-1 opacity-70">{t('client.gamePortHelp')}</small></label>
         </div>
         <label className="setting-field lg:col-span-2">{t('client.officialURL')}<input type="url" className="shadow border w-full py-2 px-3 text-black mt-2" value={config.official_download_url} onChange={event => update('official_download_url', event.target.value)}/><small className="block mt-1 opacity-70">{t('client.officialURLHelp')}</small></label>
+        <label className="setting-field lg:col-span-2">{alternativeText.label}<input type="url" className="shadow border w-full py-2 px-3 text-black mt-2" placeholder="https://downloads.example.com/factorio" value={config.alternative_download_url || ''} onChange={event => update('alternative_download_url', event.target.value)}/><small className="block mt-1 opacity-70">{alternativeText.help}</small></label>
     </div>} actions={<Button isSubmit={true} isLoading={saving} type="success">{t('settings.save')}</Button>}/></form>;
 };
 

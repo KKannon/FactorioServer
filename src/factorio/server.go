@@ -502,10 +502,10 @@ func (server *Server) Run() (runErr error) {
 	}
 
 	if config.GlibcCustom == "true" {
-		log.Println("Starting server with command: ", config.GlibcLocation, args)
+		log.Println("Starting Factorio server with custom glibc")
 		server.Cmd = exec.Command(config.GlibcLocation, args...)
 	} else {
-		log.Println("Starting server with command: ", config.FactorioBinary, args)
+		log.Println("Starting Factorio server process: ", config.FactorioBinary)
 		server.Cmd = exec.Command(config.FactorioBinary, args...)
 	}
 

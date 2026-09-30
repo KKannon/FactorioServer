@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -125,6 +126,7 @@ func UpdateWhitelistPolicy(w http.ResponseWriter, r *http.Request) {
 type playerIntelligenceResponse struct {
 	Available     bool                          `json:"available"`
 	Reason        string                        `json:"reason,omitempty"`
+	Error         string                        `json:"error,omitempty"`
 	Scope         string                        `json:"scope"`
 	Bridge        factorio.PlayerBridgeStatus   `json:"bridge"`
 	GeneratedTick int64                         `json:"generated_tick,omitempty"`
@@ -154,7 +156,11 @@ func GetPlayerIntelligence(w http.ResponseWriter, r *http.Request) {
 	}
 	snapshot, err := factorio.ReadPlayerIntelligence()
 	if err != nil {
+		log.Printf("Could not read player intelligence: %v", err)
 		response.Reason = "server_unavailable"
+		if user.CanManage {
+			response.Error = err.Error()
+		}
 		WriteResponse(w, response)
 		return
 	}

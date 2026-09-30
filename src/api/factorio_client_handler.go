@@ -135,7 +135,8 @@ func GetFactorioClientManifest(w http.ResponseWriter, r *http.Request) {
 		BundleURL: "/client-api/v1/mods/download", ClientRepository: "https://github.com/Stupid-DLL/Factorio-Client",
 		LaunchOptions: clientConfig,
 	}
-	statusETag := sha256.Sum256([]byte(fingerprint + "\x00" + status.State + "\x00" + fmt.Sprint(status.Version) + "\x00" + serverTarget))
+	clientConfigETag, _ := json.Marshal(clientConfig)
+	statusETag := sha256.Sum256([]byte(fingerprint + "\x00" + status.State + "\x00" + fmt.Sprint(status.Version) + "\x00" + serverTarget + "\x00" + string(clientConfigETag)))
 	etag := `"` + hex.EncodeToString(statusETag[:]) + `"`
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Cache-Control", "public, max-age=5")

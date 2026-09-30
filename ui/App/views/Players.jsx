@@ -93,7 +93,7 @@ const PlayerIntelligence = ({canManage, serverStatus}) => {
     if (!data.available && !canManage) return null;
     return <Panel className="mb-6" title={t('players.intelligence')} content={<>
         {!data.available && canManage && <div className="player-bridge-state">
-            <div><strong>{unavailable}</strong><p>{t('players.bridgeExplanation')}</p></div>
+            <div><strong>{unavailable}</strong><p>{t('players.bridgeExplanation')}</p>{data.error && <code className="block mt-2 text-red-light">{data.error}</code>}</div>
             {(!data.bridge?.installed || data.bridge?.update_available) && <Button isLoading={installing} isDisabled={serverStatus?.running} onClick={install}>{t(data.bridge?.update_available ? 'players.bridgeUpdate' : 'players.bridgeInstall')}</Button>}
         </div>}
         {canManage && (!data.bridge?.installed || data.bridge?.update_available) && serverStatus?.running && <p className="text-orange mt-2">{t('players.bridgeStopRequired')}</p>}

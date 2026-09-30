@@ -4,25 +4,41 @@ import (
 	"archive/zip"
 	"bytes"
 	"embed"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/OpenFactorioServerManager/factorio-server-manager/bootstrap"
-	"github.com/OpenFactorioServerManager/rcon"
 )
 
 const (
 	PlayerBridgeName     = "factorio-server-manager-bridge"
 	playerBridgeVersion  = "1.0.1"
 	playerBridgeResponse = "FSM_PLAYER_INTELLIGENCE:"
+	maxRCONPacketSize    = 16 << 20
 )
+
+const (
+	rconResponsePacket = int32(0)
+	rconExecPacket     = int32(2)
+	rconAuthPacket     = int32(3)
+	rconAuthResponse   = int32(2)
+)
+
+type rconPacket struct {
+	id         int32
+	packetType int32
+	payload    string
+}
 
 //go:embed player_bridge/*
 var playerBridgeFiles embed.FS
@@ -209,25 +225,100 @@ func rconAddress() string {
 	return net.JoinHostPort(host, strconv.Itoa(config.FactorioRconPort))
 }
 
+func writeRCONPacket(writer io.Writer, id int32, packetType int32, payload string) error {
+	if len(payload)+10 > maxRCONPacketSize {
+		return errors.New("RCON request exceeds the safe packet limit")
+	}
+	packet := bytes.NewBuffer(make([]byte, 0, len(payload)+14))
+	if err := binary.Write(packet, binary.LittleEndian, int32(len(payload)+10)); err != nil {
+		return err
+	}
+	if err := binary.Write(packet, binary.LittleEndian, id); err != nil {
+		return err
+	}
+	if err := binary.Write(packet, binary.LittleEndian, packetType); err != nil {
+		return err
+	}
+	_, _ = packet.WriteString(payload)
+	_ = packet.WriteByte(0)
+	_ = packet.WriteByte(0)
+	_, err := io.Copy(writer, packet)
+	return err
+}
+
+func readRCONPacket(reader io.Reader) (rconPacket, error) {
+	var header [4]byte
+	if _, err := io.ReadFull(reader, header[:]); err != nil {
+		return rconPacket{}, err
+	}
+	size := int64(int32(binary.LittleEndian.Uint32(header[:])))
+	if size < 10 || size > maxRCONPacketSize {
+		return rconPacket{}, fmt.Errorf("invalid RCON packet size %d", size)
+	}
+	body := make([]byte, int(size))
+	if _, err := io.ReadFull(reader, body); err != nil {
+		return rconPacket{}, err
+	}
+	if body[len(body)-2] != 0 || body[len(body)-1] != 0 {
+		return rconPacket{}, errors.New("invalid RCON packet terminator")
+	}
+	return rconPacket{
+		id:         int32(binary.LittleEndian.Uint32(body[0:4])),
+		packetType: int32(binary.LittleEndian.Uint32(body[4:8])),
+		payload:    string(body[8 : len(body)-2]),
+	}, nil
+}
+
 func requestPlayerSnapshot() (string, error) {
 	config := bootstrap.GetConfig()
-	console, err := rcon.Dial(rconAddress(), config.FactorioRconPass)
+	console, err := net.DialTimeout("tcp", rconAddress(), 10*time.Second)
 	if err != nil {
 		return "", fmt.Errorf("connect to Factorio RCON: %w", err)
 	}
 	defer console.Close()
-	requestID, err := console.Write("/fsm-players")
-	if err != nil {
+	if err := console.SetDeadline(time.Now().Add(30 * time.Second)); err != nil {
+		return "", fmt.Errorf("set Factorio RCON deadline: %w", err)
+	}
+	const authID = int32(1)
+	if err := writeRCONPacket(console, authID, rconAuthPacket, config.FactorioRconPass); err != nil {
+		return "", fmt.Errorf("authenticate with Factorio RCON: %w", err)
+	}
+	authenticated := false
+	for attempts := 0; attempts < 2; attempts++ {
+		response, readErr := readRCONPacket(console)
+		if readErr != nil {
+			return "", fmt.Errorf("read Factorio RCON authentication: %w", readErr)
+		}
+		if response.packetType != rconAuthResponse {
+			continue
+		}
+		if response.id == -1 {
+			return "", errors.New("Factorio RCON authentication failed")
+		}
+		if response.id != authID {
+			return "", errors.New("unexpected Factorio RCON authentication identifier")
+		}
+		authenticated = true
+		break
+	}
+	if !authenticated {
+		return "", errors.New("Factorio RCON did not confirm authentication")
+	}
+
+	const requestID = int32(2)
+	if err := writeRCONPacket(console, requestID, rconExecPacket, "/fsm-players"); err != nil {
 		return "", fmt.Errorf("request player snapshot: %w", err)
 	}
-	response, responseID, err := console.Read()
-	if err != nil {
-		return "", fmt.Errorf("read player snapshot: %w", err)
+	for attempts := 0; attempts < 4; attempts++ {
+		response, readErr := readRCONPacket(console)
+		if readErr != nil {
+			return "", fmt.Errorf("read player snapshot: %w", readErr)
+		}
+		if response.id == requestID && response.packetType == rconResponsePacket {
+			return response.payload, nil
+		}
 	}
-	if requestID != responseID {
-		return "", errors.New("unexpected RCON response identifier")
-	}
-	return response, nil
+	return "", errors.New("Factorio RCON did not return the requested player snapshot")
 }
 
 func parsePlayerSnapshot(response string) (PlayerIntelligenceSnapshot, error) {

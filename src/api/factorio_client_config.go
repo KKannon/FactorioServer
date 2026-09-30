@@ -16,10 +16,11 @@ import (
 )
 
 type factorioClientConfig struct {
-	PublicGameHost      string `json:"public_game_host"`
-	GamePort            int    `json:"game_port"`
-	IncludeGamePort     bool   `json:"include_game_port"`
-	OfficialDownloadURL string `json:"official_download_url"`
+	PublicGameHost        string `json:"public_game_host"`
+	GamePort              int    `json:"game_port"`
+	IncludeGamePort       bool   `json:"include_game_port"`
+	OfficialDownloadURL   string `json:"official_download_url"`
+	AlternativeDownloadURL string `json:"alternative_download_url"`
 }
 
 var factorioClientConfigMu sync.Mutex
@@ -46,6 +47,12 @@ func validateFactorioClientConfig(config factorioClientConfig) error {
 	downloadURL, err := url.Parse(config.OfficialDownloadURL)
 	if err != nil || downloadURL.Scheme != "https" || downloadURL.Host == "" {
 		return errors.New("official_download_url must be a valid HTTPS URL")
+	}
+	if config.AlternativeDownloadURL != "" {
+		alternativeURL, alternativeErr := url.Parse(config.AlternativeDownloadURL)
+		if alternativeErr != nil || alternativeURL.Scheme != "https" || alternativeURL.Host == "" {
+			return errors.New("alternative_download_url must be empty or a valid HTTPS URL")
+		}
 	}
 	return nil
 }
