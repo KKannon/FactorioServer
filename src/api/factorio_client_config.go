@@ -16,10 +16,10 @@ import (
 )
 
 type factorioClientConfig struct {
-	PublicGameHost        string `json:"public_game_host"`
-	GamePort              int    `json:"game_port"`
-	IncludeGamePort       bool   `json:"include_game_port"`
-	OfficialDownloadURL   string `json:"official_download_url"`
+	PublicGameHost         string `json:"public_game_host"`
+	GamePort               int    `json:"game_port"`
+	IncludeGamePort        bool   `json:"include_game_port"`
+	OfficialDownloadURL    string `json:"official_download_url"`
 	AlternativeDownloadURL string `json:"alternative_download_url"`
 }
 
