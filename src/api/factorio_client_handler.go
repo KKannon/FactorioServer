@@ -31,6 +31,7 @@ type factorioClientManifest struct {
 	ServerName       string               `json:"server_name"`
 	GameHost         string               `json:"game_host"`
 	GamePort         int                  `json:"game_port"`
+	IncludeGamePort  bool                 `json:"include_game_port"`
 	FactorioVersion  string               `json:"factorio_version"`
 	ServerRunning    bool                 `json:"server_running"`
 	ServerState      string               `json:"server_state"`
@@ -122,15 +123,19 @@ func GetFactorioClientManifest(w http.ResponseWriter, r *http.Request) {
 			port = 34197
 		}
 	}
-	serverIDHash := sha256.Sum256([]byte(strings.ToLower(host) + ":" + fmt.Sprint(port)))
+	serverTarget := strings.ToLower(host)
+	if clientConfig.IncludeGamePort {
+		serverTarget += ":" + fmt.Sprint(port)
+	}
+	serverIDHash := sha256.Sum256([]byte(serverTarget))
 	manifest := factorioClientManifest{
 		SchemaVersion: 1, ServerID: hex.EncodeToString(serverIDHash[:])[:20], ServerName: host,
-		GameHost: host, GamePort: port, FactorioVersion: fmt.Sprint(status.Version), ServerRunning: status.Running, ServerState: status.State,
+		GameHost: host, GamePort: port, IncludeGamePort: clientConfig.IncludeGamePort, FactorioVersion: fmt.Sprint(status.Version), ServerRunning: status.Running, ServerState: status.State,
 		ModsFingerprint: fingerprint, ModsCount: len(mods), Mods: mods,
 		BundleURL: "/client-api/v1/mods/download", ClientRepository: "https://github.com/Stupid-DLL/Factorio-Client",
 		LaunchOptions: clientConfig,
 	}
-	statusETag := sha256.Sum256([]byte(fingerprint + "\x00" + status.State + "\x00" + fmt.Sprint(status.Version)))
+	statusETag := sha256.Sum256([]byte(fingerprint + "\x00" + status.State + "\x00" + fmt.Sprint(status.Version) + "\x00" + serverTarget))
 	etag := `"` + hex.EncodeToString(statusETag[:]) + `"`
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Cache-Control", "public, max-age=5")

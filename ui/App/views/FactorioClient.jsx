@@ -21,7 +21,10 @@ const ClientConfiguration = () => {
     if (!config) return <Panel className="mt-6" title={t('client.adminConfig')} content={<p>{t('loading')}</p>}/>;
     return <form onSubmit={save}><Panel className="mt-6" title={t('client.adminConfig')} content={<div className="grid lg:grid-cols-2 gap-4">
         <label className="setting-field">{t('client.publicHost')}<input className="shadow border w-full py-2 px-3 text-black mt-2" value={config.public_game_host} onChange={event => update('public_game_host', event.target.value)}/><small className="block mt-1 opacity-70">{t('client.publicHostHelp')}</small></label>
-        <label className="setting-field">{t('client.gamePort')}<input type="number" min="1" max="65535" className="shadow border w-full py-2 px-3 text-black mt-2" value={config.game_port} onChange={event => update('game_port', event.target.value)}/></label>
+        <div className="setting-field">
+            <label className="inline-flex gap-2 items-center mb-2"><input type="checkbox" checked={config.include_game_port} onChange={event => update('include_game_port', event.target.checked)}/>{t('client.includePort')}</label>
+            <label>{t('client.gamePort')}<input type="number" min="1" max="65535" disabled={!config.include_game_port} className="shadow border w-full py-2 px-3 text-black mt-2 disabled:opacity-50" value={config.game_port || ''} onChange={event => update('game_port', event.target.value)}/><small className="block mt-1 opacity-70">{t('client.gamePortHelp')}</small></label>
+        </div>
         <label className="setting-field lg:col-span-2">{t('client.officialURL')}<input type="url" className="shadow border w-full py-2 px-3 text-black mt-2" value={config.official_download_url} onChange={event => update('official_download_url', event.target.value)}/><small className="block mt-1 opacity-70">{t('client.officialURLHelp')}</small></label>
     </div>} actions={<Button isSubmit={true} isLoading={saving} type="success">{t('settings.save')}</Button>}/></form>;
 };

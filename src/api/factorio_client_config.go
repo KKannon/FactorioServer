@@ -18,6 +18,7 @@ import (
 type factorioClientConfig struct {
 	PublicGameHost      string `json:"public_game_host"`
 	GamePort            int    `json:"game_port"`
+	IncludeGamePort     bool   `json:"include_game_port"`
 	OfficialDownloadURL string `json:"official_download_url"`
 }
 
@@ -25,7 +26,7 @@ var factorioClientConfigMu sync.Mutex
 var hostnamePattern = regexp.MustCompile(`^[A-Za-z0-9.-]+$`)
 
 func defaultFactorioClientConfig() factorioClientConfig {
-	return factorioClientConfig{GamePort: 34197, OfficialDownloadURL: "https://factorio.com/download"}
+	return factorioClientConfig{GamePort: 34197, IncludeGamePort: true, OfficialDownloadURL: "https://factorio.com/download"}
 }
 
 func factorioClientConfigPath() string {
@@ -33,8 +34,11 @@ func factorioClientConfigPath() string {
 }
 
 func validateFactorioClientConfig(config factorioClientConfig) error {
-	if config.GamePort < 1 || config.GamePort > 65535 {
+	if config.IncludeGamePort && (config.GamePort < 1 || config.GamePort > 65535) {
 		return errors.New("game_port must be between 1 and 65535")
+	}
+	if !config.IncludeGamePort && config.GamePort != 0 && (config.GamePort < 1 || config.GamePort > 65535) {
+		return errors.New("game_port must be empty or between 1 and 65535")
 	}
 	if config.PublicGameHost != "" && (strings.ContainsAny(config.PublicGameHost, "/\\") || net.ParseIP(config.PublicGameHost) == nil && !hostnamePattern.MatchString(config.PublicGameHost)) {
 		return errors.New("public_game_host must be a hostname or IP address")

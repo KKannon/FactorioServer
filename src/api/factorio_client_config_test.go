@@ -6,6 +6,8 @@ func TestValidateFactorioClientConfigAcceptsSafeSettings(t *testing.T) {
 	config := defaultFactorioClientConfig()
 	config.PublicGameHost = "factorio.example.com"
 	config.GamePort = 34197
+	config.IncludeGamePort = false
+	config.GamePort = 0
 	if err := validateFactorioClientConfig(config); err != nil {
 		t.Fatalf("expected valid config: %v", err)
 	}
@@ -18,6 +20,7 @@ func TestValidateFactorioClientConfigRejectsUnsafeSettings(t *testing.T) {
 	}{
 		{"host with path", func(config *factorioClientConfig) { config.PublicGameHost = "example.com/path" }},
 		{"invalid port", func(config *factorioClientConfig) { config.GamePort = 70000 }},
+		{"missing enabled port", func(config *factorioClientConfig) { config.GamePort = 0; config.IncludeGamePort = true }},
 		{"non HTTPS link", func(config *factorioClientConfig) { config.OfficialDownloadURL = "http://example.com/game" }},
 	}
 	for _, test := range tests {
