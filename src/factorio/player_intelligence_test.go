@@ -60,6 +60,18 @@ func TestParsePlayerSnapshotRequiresBridgeMarkerAndSchema(t *testing.T) {
 	}
 }
 
+func TestParsePlayerSnapshotAcceptsFactorioEmptyTablesAsLists(t *testing.T) {
+	response := playerBridgeResponse + `{"schema_version":1,"generated_tick":120,"source":"factorio-server-manager-bridge","players":[{"name":"Alice","inventory":{},"guns":{},"ammo":{},"armor":{},"trash":{},"equipment":{},"crafting_queue":{}}],"capabilities":{}}`
+	snapshot, err := parsePlayerSnapshot(response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	player := snapshot.Players[0]
+	if player.Inventory == nil || player.Guns == nil || player.Ammo == nil || player.Armor == nil || player.Trash == nil || player.Equipment == nil || player.CraftingQueue == nil {
+		t.Fatalf("empty Factorio tables must be exposed as JSON arrays: %#v", player)
+	}
+}
+
 func TestVisiblePlayerIntelligenceRestrictsMembersToExactUsername(t *testing.T) {
 	snapshot := PlayerIntelligenceSnapshot{Players: []PlayerIntelligence{{Name: "Alice"}, {Name: "Bob"}}}
 	visible := VisiblePlayerIntelligence(snapshot, "Bob", false)

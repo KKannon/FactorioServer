@@ -49,12 +49,16 @@ type PlayerItem struct {
 	Count   int    `json:"count"`
 }
 
+type PlayerItemList []PlayerItem
+
 type PlayerEquipment struct {
 	Name    string  `json:"name"`
 	Quality string  `json:"quality"`
 	Shield  float64 `json:"shield"`
 	Energy  float64 `json:"energy"`
 }
+
+type PlayerEquipmentList []PlayerEquipment
 
 type PlayerPosition struct {
 	X float64 `json:"x"`
@@ -65,6 +69,34 @@ type PlayerCraft struct {
 	Recipe       string `json:"recipe"`
 	Count        int    `json:"count"`
 	Prerequisite bool   `json:"prerequisite"`
+}
+
+type PlayerCraftList []PlayerCraft
+
+func unmarshalPlayerList[T any](data []byte, target *[]T) error {
+	var values []T
+	if err := json.Unmarshal(data, &values); err == nil {
+		*target = values
+		return nil
+	}
+	var emptyObject map[string]json.RawMessage
+	if err := json.Unmarshal(data, &emptyObject); err == nil && len(emptyObject) == 0 {
+		*target = make([]T, 0)
+		return nil
+	}
+	return json.Unmarshal(data, &values)
+}
+
+func (items *PlayerItemList) UnmarshalJSON(data []byte) error {
+	return unmarshalPlayerList(data, (*[]PlayerItem)(items))
+}
+
+func (items *PlayerEquipmentList) UnmarshalJSON(data []byte) error {
+	return unmarshalPlayerList(data, (*[]PlayerEquipment)(items))
+}
+
+func (items *PlayerCraftList) UnmarshalJSON(data []byte) error {
+	return unmarshalPlayerList(data, (*[]PlayerCraft)(items))
 }
 
 type PlayerTrackedStatistics struct {
@@ -87,13 +119,13 @@ type PlayerIntelligence struct {
 	AFKTicks        int64                   `json:"afk_ticks"`
 	Health          *float64                `json:"health"`
 	MaxHealth       *float64                `json:"max_health"`
-	Inventory       []PlayerItem            `json:"inventory"`
-	Guns            []PlayerItem            `json:"guns"`
-	Ammo            []PlayerItem            `json:"ammo"`
-	Armor           []PlayerItem            `json:"armor"`
-	Trash           []PlayerItem            `json:"trash"`
-	Equipment       []PlayerEquipment       `json:"equipment"`
-	CraftingQueue   []PlayerCraft           `json:"crafting_queue"`
+	Inventory       PlayerItemList          `json:"inventory"`
+	Guns            PlayerItemList          `json:"guns"`
+	Ammo            PlayerItemList          `json:"ammo"`
+	Armor           PlayerItemList          `json:"armor"`
+	Trash           PlayerItemList          `json:"trash"`
+	Equipment       PlayerEquipmentList     `json:"equipment"`
+	CraftingQueue   PlayerCraftList         `json:"crafting_queue"`
 	Statistics      PlayerTrackedStatistics `json:"statistics"`
 }
 
