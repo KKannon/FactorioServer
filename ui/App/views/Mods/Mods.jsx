@@ -24,6 +24,7 @@ const Mods = ({serverStatus}) => {
     const [isDeletingAllMods, setIsDeletingAllMods] = useState(false);
     const [isUpdatingAllMods, setIsUpdatingAllMods] = useState(false);
     const [updatableMods, setUpdatableMods] = useState([]);
+    const [uploadPolicy, setUploadPolicy] = useState({allow_unpublished_mods: false});
 
     const addUpdatableMod = mod => {
         setUpdatableMods(mods => mods.some(existing => existing.modName === mod.modName) ? mods : [...mods, mod])
@@ -87,6 +88,7 @@ const Mods = ({serverStatus}) => {
                     minMatchCharLength: 3
                 }));
             });
+        modsResource.uploadPolicy.get().then(setUploadPolicy);
 
     }, []);
 
@@ -128,7 +130,7 @@ const Mods = ({serverStatus}) => {
                         <AddMod refetchInstalledMods={fetchInstalledMods} fuse={fuse}/>
                     </Tab>
                     <Tab title={t('mods.upload')}>
-                        <UploadMod refetchInstalledMods={fetchInstalledMods}/>
+                        <UploadMod refetchInstalledMods={fetchInstalledMods} policy={uploadPolicy} onPolicyChange={setUploadPolicy}/>
                     </Tab>
                     <Tab title={t('mods.loadSave')}>
                         <LoadMods refreshMods={fetchInstalledMods}/>

@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var factorioClientUpdateFilename = regexp.MustCompile(`^Factorio-Client-(?:Setup-)?[0-9]+\.[0-9]+\.[0-9]+\.exe(?:\.blockmap)?$`)
+var factorioClientUpdateFilename = regexp.MustCompile(`^Factorio-(?:Client|Launcher)-(?:Setup-)?[0-9]+\.[0-9]+\.[0-9]+\.exe(?:\.blockmap)?$`)
 var factorioClientUpdateVersion = regexp.MustCompile(`(?m)^version:\s*["']?([0-9]+\.[0-9]+\.[0-9]+)["']?\s*$`)
 
 func clientUpdatesDir() string {
@@ -56,6 +56,11 @@ func DownloadLatestFactorioClient(w http.ResponseWriter, r *http.Request) {
 	match := factorioClientUpdateVersion.FindSubmatch(contents)
 	if len(match) != 2 {
 		http.Error(w, "Factorio Client update manifest is invalid", http.StatusInternalServerError)
+		return
+	}
+	launcher := "Factorio-Launcher-Setup-" + string(match[1]) + ".exe"
+	if _, err := os.Stat(filepath.Join(clientUpdatesDir(), launcher)); err == nil {
+		serveFactorioClientUpdate(w, r, launcher, true)
 		return
 	}
 	serveFactorioClientUpdate(w, r, "Factorio-Client-Setup-"+string(match[1])+".exe", true)

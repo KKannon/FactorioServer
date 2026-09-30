@@ -606,6 +606,18 @@ var apiRoutes = Routes{
 		ListInstalledModsHandler,
 		false,
 	}, {
+		"GetModUploadPolicy",
+		"GET",
+		"/mods/upload/policy",
+		GetModUploadPolicy,
+		false,
+	}, {
+		"UpdateModUploadPolicy",
+		"POST",
+		"/mods/upload/policy",
+		UpdateModUploadPolicy,
+		true,
+	}, {
 		"ToggleMod",
 		"POST",
 		"/mods/toggle",

@@ -22,11 +22,18 @@ const mods = {
         formData.append("mod_file", file);
 
         const response = await client.post('/api/mods/upload', formData, {
+            suppressErrorFlash: true,
             headers: {
                 "Content-Type": "multipart/form-data"
             }
         });
         return response.data;
+    },
+    uploadPolicy: {
+        get: async () => (await client.get('/api/mods/upload/policy')).data,
+        update: async allowUnpublishedMods => (await client.post('/api/mods/upload/policy', {
+            allow_unpublished_mods: allowUnpublishedMods
+        }, confirmed('UpdateModUploadPolicy'))).data,
     },
     deleteAll: async () => {
         const response = await client.post('/api/mods/delete/all', undefined, confirmed('DeleteAllMods'));
@@ -65,8 +72,8 @@ const mods = {
             const response = await client.get('/api/mods/portal/list');
             return response.data
         },
-        info: async mod => {
-            const response = await client.get(`/api/mods/portal/info/${mod}`);
+        info: async (mod, options = {}) => {
+            const response = await client.get(`/api/mods/portal/info/${mod}`, options);
             return response.data;
         }
     },

@@ -18,6 +18,8 @@ client.interceptors.response.use(res => res, err => {
         return Promise.reject(err);
     } else if(!err.response) {
         window.flash("Service not available", "red");
+    } else if (err.config?.suppressErrorFlash) {
+        // The caller presents a contextual, translated error instead.
     } else if(err.response.status === 502) {
         window.flash("Service not available", "red");
     } else if (err.response.status === 401) {

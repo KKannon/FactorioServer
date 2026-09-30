@@ -247,9 +247,33 @@ func ModUploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	unpublished := false
+	modName := ""
 	// if the file is a zip file, we handle it as mod
 	// if the file is mod-settings.dat or mod-list.json, we just replace the
 	if filepath.Ext(fileHeader.Filename) == ".zip" {
+		modInfo, inspectErr := factorio.InspectModUpload(formFile, fileHeader)
+		if inspectErr != nil {
+			resp = map[string]interface{}{"error": "invalid-mod-archive", "detail": inspectErr.Error()}
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		modName = modInfo.Name
+		_, portalErr, portalStatus := factorio.ModPortalModDetails(modInfo.Name)
+		if portalErr != nil {
+			policy, policyErr := loadModUploadPolicy()
+			if policyErr != nil {
+				resp = policyErr.Error()
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			if !policy.AllowUnpublishedMods {
+				resp = map[string]interface{}{"error": "unpublished-mod-blocked", "mod": modInfo.Name, "portal_status": portalStatus}
+				w.WriteHeader(http.StatusConflict)
+				return
+			}
+			unpublished = true
+		}
 		err = mods.UploadMod(formFile, fileHeader)
 		if err != nil {
 			resp = fmt.Sprintf("error saving file to mods: %s", err)
@@ -280,7 +304,7 @@ func ModUploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp = mods.ListInstalledMods()
+	resp = map[string]interface{}{"mods": mods.ListInstalledMods(), "unpublished": unpublished, "mod": modName}
 }
 
 func ModDownloadHandler(w http.ResponseWriter, r *http.Request) {

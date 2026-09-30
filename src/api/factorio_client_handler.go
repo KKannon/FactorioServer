@@ -26,21 +26,22 @@ type factorioClientMod struct {
 }
 
 type factorioClientManifest struct {
-	SchemaVersion    int                  `json:"schema_version"`
-	ServerID         string               `json:"server_id"`
-	ServerName       string               `json:"server_name"`
-	GameHost         string               `json:"game_host"`
-	GamePort         int                  `json:"game_port"`
-	IncludeGamePort  bool                 `json:"include_game_port"`
-	FactorioVersion  string               `json:"factorio_version"`
-	ServerRunning    bool                 `json:"server_running"`
-	ServerState      string               `json:"server_state"`
-	ModsFingerprint  string               `json:"mods_fingerprint"`
-	ModsCount        int                  `json:"mods_count"`
-	Mods             []factorioClientMod  `json:"mods"`
-	BundleURL        string               `json:"bundle_url"`
-	ClientRepository string               `json:"client_repository"`
-	LaunchOptions    factorioClientConfig `json:"launch_options"`
+	SchemaVersion               int                  `json:"schema_version"`
+	ServerID                    string               `json:"server_id"`
+	ServerName                  string               `json:"server_name"`
+	GameHost                    string               `json:"game_host"`
+	GamePort                    int                  `json:"game_port"`
+	IncludeGamePort             bool                 `json:"include_game_port"`
+	FactorioVersion             string               `json:"factorio_version"`
+	ServerRunning               bool                 `json:"server_running"`
+	ServerState                 string               `json:"server_state"`
+	ModsFingerprint             string               `json:"mods_fingerprint"`
+	ModsCount                   int                  `json:"mods_count"`
+	Mods                        []factorioClientMod  `json:"mods"`
+	BundleURL                   string               `json:"bundle_url"`
+	ClientRepository            string               `json:"client_repository"`
+	LaunchOptions               factorioClientConfig `json:"launch_options"`
+	AllowUnauthenticatedPlayers bool                 `json:"allow_unauthenticated_players"`
 }
 
 func factorioClientMods(modsDir string) ([]factorioClientMod, string, error) {
@@ -134,10 +135,10 @@ func GetFactorioClientManifest(w http.ResponseWriter, r *http.Request) {
 		GameHost: host, GamePort: port, IncludeGamePort: clientConfig.IncludeGamePort, FactorioVersion: fmt.Sprint(status.Version), ServerRunning: status.Running, ServerState: status.State,
 		ModsFingerprint: fingerprint, ModsCount: len(mods), Mods: mods,
 		BundleURL: "/client-api/v1/mods/download", ClientRepository: "https://github.com/Stupid-DLL/Factorio-Client",
-		LaunchOptions: clientConfig,
+		LaunchOptions: clientConfig, AllowUnauthenticatedPlayers: allowsUnauthenticatedPlayers(),
 	}
 	clientConfigETag, _ := json.Marshal(clientConfig)
-	statusETag := sha256.Sum256([]byte(fingerprint + "\x00" + status.State + "\x00" + fmt.Sprint(status.Version) + "\x00" + serverTarget + "\x00" + string(clientConfigETag)))
+	statusETag := sha256.Sum256([]byte(fingerprint + "\x00" + status.State + "\x00" + fmt.Sprint(status.Version) + "\x00" + serverTarget + "\x00" + fmt.Sprint(manifest.AllowUnauthenticatedPlayers) + "\x00" + string(clientConfigETag)))
 	etag := `"` + hex.EncodeToString(statusETag[:]) + `"`
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Cache-Control", "public, max-age=5")

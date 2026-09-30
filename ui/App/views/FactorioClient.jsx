@@ -47,7 +47,8 @@ const ClientConfiguration = () => {
 const FactorioClient = ({canManage, identity}) => {
     const launcherURL = useMemo(() => {
         const language = identity?.preferences?.language || 'pt-BR';
-        return `factorio-client://configure?server=${encodeURIComponent(window.location.origin)}&language=${encodeURIComponent(language)}`;
+        const username = identity?.game_username || '';
+        return `factorio-client://configure?server=${encodeURIComponent(window.location.origin)}&language=${encodeURIComponent(language)}&username=${encodeURIComponent(username)}`;
     }, [identity]);
     return <><Panel title={t('client.title')} content={<>
         <p className="text-lg mb-5">{t('client.subtitle')}</p>

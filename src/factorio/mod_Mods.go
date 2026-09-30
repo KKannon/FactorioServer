@@ -225,6 +225,34 @@ func (mods *Mods) UploadMod(file multipart.File, header *multipart.FileHeader) e
 	return nil
 }
 
+// InspectModUpload validates a ZIP and returns its embedded info.json without
+// requiring the archive to match a Mod Portal release. Locally modified mods
+// remain valid Factorio mods as long as their archive metadata is valid.
+func InspectModUpload(file multipart.File, header *multipart.FileHeader) (ModInfo, error) {
+	var modInfo ModInfo
+	if err := ValidateFileName(header.Filename); err != nil {
+		return modInfo, err
+	}
+	if filepath.Ext(header.Filename) != ".zip" {
+		return modInfo, errors.New("the uploaded file wasn't a zip-file")
+	}
+	contents, err := ioutil.ReadAll(file)
+	if err != nil {
+		return modInfo, err
+	}
+	reader, err := zip.NewReader(bytes.NewReader(contents), int64(len(contents)))
+	if err != nil {
+		return modInfo, err
+	}
+	if err = modInfo.getModInfo(reader); err != nil {
+		return modInfo, err
+	}
+	if _, err = file.Seek(0, io.SeekStart); err != nil {
+		return modInfo, err
+	}
+	return modInfo, nil
+}
+
 func (mods *Mods) UpdateMod(modName string, url string, filename string) error {
 	var err error
 

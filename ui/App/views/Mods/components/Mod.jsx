@@ -25,7 +25,14 @@ const Mod = ({mod, factorioVersion, toggleMod, deleteMod, updateMod, addUpdatabl
     useEffect(() => {
         if (!disabled) {
             (async () => {
-                const data = await modsResource.portal.info(mod.name)
+                const data = await modsResource.portal.info(mod.name, {suppressErrorFlash: true}).catch(error => {
+                    if ([404, 500].includes(error.response?.status)) return null;
+                    throw error;
+                });
+                if (!data?.releases) {
+                    setNewVersion(null);
+                    return;
+                }
 
                 //get newest COMPATIBLE release
                 let newestRelease;

@@ -3,7 +3,7 @@ package api
 import "testing"
 
 func TestValidFactorioClientUpdateFilename(t *testing.T) {
-	valid := []string{"latest.yml", "Factorio-Client-0.2.4.exe", "Factorio-Client-Setup-0.2.4.exe", "Factorio-Client-Setup-0.2.4.exe.blockmap"}
+	valid := []string{"latest.yml", "Factorio-Client-0.2.4.exe", "Factorio-Client-Setup-0.2.4.exe", "Factorio-Client-Setup-0.2.4.exe.blockmap", "Factorio-Launcher-0.3.0.exe", "Factorio-Launcher-Setup-0.3.0.exe", "Factorio-Launcher-Setup-0.3.0.exe.blockmap"}
 	for _, name := range valid {
 		if !validFactorioClientUpdateFilename(name) {
 			t.Fatalf("expected %q to be accepted", name)

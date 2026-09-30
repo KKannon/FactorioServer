@@ -4,8 +4,9 @@ import Label from "../../../components/Label";
 import {useForm} from "react-hook-form";
 import modsResource from "../../../../api/resources/mods";
 import {t} from "../../../../identity/preferences";
+import Swal from "sweetalert2";
 
-const UploadMod = ({refetchInstalledMods}) => {
+const UploadMod = ({refetchInstalledMods, policy, onPolicyChange}) => {
 
     const [files, setFiles] = useState([]);
     const [uploaded, setUploaded] = useState(0);
@@ -18,9 +19,13 @@ const UploadMod = ({refetchInstalledMods}) => {
         setIsUploading(true);
         setUploaded(0);
         Promise.allSettled(selected.map(file => modsResource.upload(file).finally(() => setUploaded(value => value + 1))))
-            .then(results => {
+            .then(async results => {
                 const failed = results.filter(result => result.status === 'rejected').length;
-                if (failed) window.flash(`${failed} file(s) could not be uploaded.`, 'red');
+                const blocked = results.find(result => result.status === 'rejected' && result.reason?.response?.data?.error === 'unpublished-mod-blocked');
+                const unpublished = results.filter(result => result.status === 'fulfilled' && result.value?.unpublished).map(result => result.value.mod);
+                if (blocked) await Swal.fire({icon: 'error', title: t('mods.unpublishedBlockedTitle'), text: t('mods.unpublishedBlockedText', {name: blocked.reason.response.data.mod}), confirmButtonText: t('controls.cancel')});
+                else if (failed) window.flash(t('mods.uploadFailed', {count: failed}), 'red');
+                if (unpublished.length) await Swal.fire({icon: 'warning', title: t('mods.unpublishedUploadedTitle'), text: t('mods.unpublishedUploadedText', {name: unpublished.join(', ')}), confirmButtonText: t('mods.understood')});
                 return refetchInstalledMods();
             })
             .finally(() => {
@@ -31,8 +36,21 @@ const UploadMod = ({refetchInstalledMods}) => {
             });
     }
 
+    const togglePolicy = async event => {
+        const enabled = event.target.checked;
+        if (enabled) {
+            const confirmation = await Swal.fire({icon: 'warning', title: t('mods.allowUnpublishedTitle'), text: t('mods.allowUnpublishedWarning'), showCancelButton: true, confirmButtonText: t('mods.allowUnpublishedConfirm'), cancelButtonText: t('controls.cancel'), confirmButtonColor: '#dc2626'});
+            if (!confirmation.isConfirmed) return;
+        }
+        onPolicyChange(await modsResource.uploadPolicy.update(enabled));
+    };
+
     return (
         <form onSubmit={handleSubmit(onSubmit)}>
+            <label className="setting-field block mb-4" title={t('mods.allowUnpublishedTooltip')}>
+                <span className="inline-flex gap-3 items-center font-bold"><input type="checkbox" checked={Boolean(policy?.allow_unpublished_mods)} onChange={togglePolicy}/>{t('mods.allowUnpublished')}</span>
+                <small className="block mt-2 opacity-75">{t('mods.allowUnpublishedTooltip')}</small>
+            </label>
             <Label text={t('mods.upload')} htmlFor="mod_file"/>
             <div className="relative bg-white shadow text-black h-full w-full mb-4">
                 <input
