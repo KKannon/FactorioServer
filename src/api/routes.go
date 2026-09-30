@@ -79,6 +79,8 @@ func NewRouter() *mux.Router {
 	mainRouter.Path("/auth/logout").Methods("GET").Name("OIDCLogout").HandlerFunc(OIDCLogout)
 	mainRouter.Path("/client-api/v1/manifest").Methods("GET").Name("FactorioClientManifest").HandlerFunc(GetFactorioClientManifest)
 	mainRouter.Path("/client-api/v1/mods/download").Methods("GET").Name("FactorioClientModBundle").HandlerFunc(DownloadFactorioClientModBundle)
+	mainRouter.Path("/client-updates/download").Methods("GET", "HEAD").Name("FactorioClientDownload").HandlerFunc(DownloadLatestFactorioClient)
+	mainRouter.Path("/client-updates/{filename}").Methods("GET", "HEAD").Name("FactorioClientUpdate").HandlerFunc(GetFactorioClientUpdate)
 
 	// Route for initializing websocket connection
 	// Clients connecting to /ws establish websocket connection by upgrading

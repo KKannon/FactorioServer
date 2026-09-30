@@ -41,7 +41,7 @@ const FactorioClient = ({canManage, identity}) => {
         </div>
         <div className="flex flex-wrap gap-3">
             <a className="py-2 px-3 bg-green hover:glow-orange accentuated text-black font-bold" href={launcherURL}>{t('client.openLauncher')}</a>
-            <a className="py-2 px-3 bg-orange hover:glow-orange accentuated text-black font-bold" href="https://github.com/Stupid-DLL/Factorio-Client/releases/latest" target="_blank" rel="noreferrer">{t('client.download')}</a>
+            <a className="py-2 px-3 bg-orange hover:glow-orange accentuated text-black font-bold" href="/client-updates/download">{t('client.download')}</a>
             <a className="py-2 px-3 bg-gray-light hover:bg-orange accentuated text-black font-bold" href="/client-api/v1/manifest" target="_blank" rel="noreferrer">{t('client.api')}</a>
         </div>
     </>}/>{canManage && <ClientConfiguration/>}</>;
