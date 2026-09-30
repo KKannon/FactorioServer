@@ -20,7 +20,7 @@ func clientUpdatesDir() string {
 }
 
 func validFactorioClientUpdateFilename(name string) bool {
-	return name == "latest.yml" || factorioClientUpdateFilename.MatchString(name)
+	return name == "latest.yml" || name == "portable-latest.json" || factorioClientUpdateFilename.MatchString(name)
 }
 
 func serveFactorioClientUpdate(w http.ResponseWriter, r *http.Request, name string, download bool) {
@@ -30,6 +30,13 @@ func serveFactorioClientUpdate(w http.ResponseWriter, r *http.Request, name stri
 	}
 	path := filepath.Join(clientUpdatesDir(), name)
 	info, err := os.Stat(path)
+	if (err != nil || !info.Mode().IsRegular()) && strings.HasPrefix(name, "Factorio-Client-") {
+		// Portable releases before the product rename request the legacy filename.
+		// Serve the matching Launcher artifact so those users can cross the rename once.
+		name = strings.Replace(name, "Factorio-Client-", "Factorio-Launcher-", 1)
+		path = filepath.Join(clientUpdatesDir(), name)
+		info, err = os.Stat(path)
+	}
 	if err != nil || !info.Mode().IsRegular() {
 		http.NotFound(w, r)
 		return
@@ -37,6 +44,9 @@ func serveFactorioClientUpdate(w http.ResponseWriter, r *http.Request, name stri
 	if name == "latest.yml" {
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		w.Header().Set("Content-Type", "application/yaml; charset=utf-8")
+	} else if name == "portable-latest.json" {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	} else {
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		w.Header().Set("Content-Type", "application/octet-stream")
