@@ -3,11 +3,12 @@ import Panel from '../components/Panel';
 import Button from '../components/Button';
 import {currentLanguage, t} from '../../identity/preferences';
 import factorioClient from '../../api/resources/factorioClient';
+import settingsResource from '../../api/resources/settings';
 
 const alternativeDownloadCopy = {
-    en: {label: 'Alternative download', help: 'Optional HTTPS address exposed in the client API manifest.'},
-    'pt-BR': {label: 'Download alternativo', help: 'Endereço HTTPS opcional disponibilizado no manifesto da API do cliente.'},
-    'es-ES': {label: 'Descarga alternativa', help: 'Dirección HTTPS opcional publicada en el manifiesto de la API del cliente.'},
+    en: {label: 'Alternative download (magnet)', help: 'Optional magnet link exposed to the launcher only while unauthenticated players are allowed.'},
+    'pt-BR': {label: 'Download alternativo (magnet)', help: 'Magnet link opcional enviado ao launcher somente enquanto jogadores não autenticados estiverem permitidos.'},
+    'es-ES': {label: 'Descarga alternativa (magnet)', help: 'Enlace magnet opcional enviado al launcher solo mientras se permitan jugadores no autenticados.'},
 };
 
 const Feature = ({title, children}) => <div className="setting-field">
@@ -16,9 +17,15 @@ const Feature = ({title, children}) => <div className="setting-field">
 
 const ClientConfiguration = () => {
     const [config, setConfig] = useState(null);
+    const [allowUnauthenticated, setAllowUnauthenticated] = useState(false);
     const [saving, setSaving] = useState(false);
     const alternativeText = alternativeDownloadCopy[currentLanguage()] || alternativeDownloadCopy.en;
-    useEffect(() => { factorioClient.config().then(setConfig); }, []);
+    useEffect(() => {
+        Promise.all([factorioClient.config(), settingsResource.server.list()]).then(([clientConfig, serverSettings]) => {
+            setConfig(clientConfig);
+            setAllowUnauthenticated(serverSettings.require_user_verification === false);
+        });
+    }, []);
     const update = (name, value) => setConfig(current => ({...current, [name]: value}));
     const save = async event => {
         event.preventDefault(); setSaving(true);
@@ -33,7 +40,7 @@ const ClientConfiguration = () => {
             <label>{t('client.gamePort')}<input type="number" min="1" max="65535" disabled={!config.include_game_port} className="shadow border w-full py-2 px-3 text-black mt-2 disabled:opacity-50" value={config.game_port || ''} onChange={event => update('game_port', event.target.value)}/><small className="block mt-1 opacity-70">{t('client.gamePortHelp')}</small></label>
         </div>
         <label className="setting-field lg:col-span-2">{t('client.officialURL')}<input type="url" className="shadow border w-full py-2 px-3 text-black mt-2" value={config.official_download_url} onChange={event => update('official_download_url', event.target.value)}/><small className="block mt-1 opacity-70">{t('client.officialURLHelp')}</small></label>
-        <label className="setting-field lg:col-span-2">{alternativeText.label}<input type="url" className="shadow border w-full py-2 px-3 text-black mt-2" placeholder="https://downloads.example.com/factorio" value={config.alternative_download_url || ''} onChange={event => update('alternative_download_url', event.target.value)}/><small className="block mt-1 opacity-70">{alternativeText.help}</small></label>
+        {allowUnauthenticated && <label className="setting-field lg:col-span-2">{alternativeText.label}<input type="text" className="shadow border w-full py-2 px-3 text-black mt-2" placeholder="magnet:?xt=urn:btih:..." value={config.alternative_download_magnet || ''} onChange={event => update('alternative_download_magnet', event.target.value)}/><small className="block mt-1 opacity-70">{alternativeText.help}</small></label>}
     </div>} actions={<Button isSubmit={true} isLoading={saving} type="success">{t('settings.save')}</Button>}/></form>;
 };
 

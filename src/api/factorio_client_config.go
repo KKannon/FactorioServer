@@ -13,14 +13,15 @@ import (
 	"sync"
 
 	"github.com/OpenFactorioServerManager/factorio-server-manager/bootstrap"
+	"github.com/OpenFactorioServerManager/factorio-server-manager/factorio"
 )
 
 type factorioClientConfig struct {
-	PublicGameHost         string `json:"public_game_host"`
-	GamePort               int    `json:"game_port"`
-	IncludeGamePort        bool   `json:"include_game_port"`
-	OfficialDownloadURL    string `json:"official_download_url"`
-	AlternativeDownloadURL string `json:"alternative_download_url"`
+	PublicGameHost            string `json:"public_game_host"`
+	GamePort                  int    `json:"game_port"`
+	IncludeGamePort           bool   `json:"include_game_port"`
+	OfficialDownloadURL       string `json:"official_download_url"`
+	AlternativeDownloadMagnet string `json:"alternative_download_magnet"`
 }
 
 var factorioClientConfigMu sync.Mutex
@@ -48,13 +49,26 @@ func validateFactorioClientConfig(config factorioClientConfig) error {
 	if err != nil || downloadURL.Scheme != "https" || downloadURL.Host == "" {
 		return errors.New("official_download_url must be a valid HTTPS URL")
 	}
-	if config.AlternativeDownloadURL != "" {
-		alternativeURL, alternativeErr := url.Parse(config.AlternativeDownloadURL)
-		if alternativeErr != nil || alternativeURL.Scheme != "https" || alternativeURL.Host == "" {
-			return errors.New("alternative_download_url must be empty or a valid HTTPS URL")
+	if config.AlternativeDownloadMagnet != "" {
+		magnet, magnetErr := url.Parse(config.AlternativeDownloadMagnet)
+		exactTopic := strings.ToLower(magnet.Query().Get("xt"))
+		if magnetErr != nil || !strings.EqualFold(magnet.Scheme, "magnet") || !strings.HasPrefix(exactTopic, "urn:bt") {
+			return errors.New("alternative_download_magnet must be empty or a valid magnet link")
 		}
 	}
 	return nil
+}
+
+func allowsUnauthenticatedPlayers() bool {
+	required, ok := factorio.GetFactorioServer().Settings["require_user_verification"].(bool)
+	return ok && !required
+}
+
+func effectiveFactorioClientConfig(config factorioClientConfig, allowUnauthenticated bool) factorioClientConfig {
+	if !allowUnauthenticated {
+		config.AlternativeDownloadMagnet = ""
+	}
+	return config
 }
 
 func loadFactorioClientConfig() (factorioClientConfig, error) {
@@ -105,6 +119,10 @@ func GetFactorioClientConfig(w http.ResponseWriter, _ *http.Request) {
 func UpdateFactorioClientConfig(w http.ResponseWriter, r *http.Request) {
 	var config factorioClientConfig
 	if _, err := ReadFromRequestBody(w, r, &config); err != nil {
+		return
+	}
+	if config.AlternativeDownloadMagnet != "" && !allowsUnauthenticatedPlayers() {
+		http.Error(w, "alternative_download_magnet requires unauthenticated players to be allowed", http.StatusBadRequest)
 		return
 	}
 	if err := saveFactorioClientConfig(config); err != nil {

@@ -113,6 +113,7 @@ func GetFactorioClientManifest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Could not load Factorio Client configuration: %v", err), http.StatusInternalServerError)
 		return
 	}
+	clientConfig = effectiveFactorioClientConfig(clientConfig, allowsUnauthenticatedPlayers())
 	if clientConfig.PublicGameHost != "" {
 		host = clientConfig.PublicGameHost
 	}
