@@ -22,7 +22,7 @@ import (
 
 const (
 	PlayerBridgeName     = "factorio-server-manager-bridge"
-	playerBridgeVersion  = "1.0.1"
+	playerBridgeVersion  = "1.1.0"
 	playerBridgeResponse = "FSM_PLAYER_INTELLIGENCE:"
 	maxRCONPacketSize    = 16 << 20
 )
@@ -301,7 +301,7 @@ func readRCONPacket(reader io.Reader) (rconPacket, error) {
 	}, nil
 }
 
-func requestPlayerSnapshot() (string, error) {
+func requestBridgeCommand(command string) (string, error) {
 	config := bootstrap.GetConfig()
 	console, err := net.DialTimeout("tcp", rconAddress(), 10*time.Second)
 	if err != nil {
@@ -338,20 +338,22 @@ func requestPlayerSnapshot() (string, error) {
 	}
 
 	const requestID = int32(2)
-	if err := writeRCONPacket(console, requestID, rconExecPacket, "/fsm-players"); err != nil {
-		return "", fmt.Errorf("request player snapshot: %w", err)
+	if err := writeRCONPacket(console, requestID, rconExecPacket, command); err != nil {
+		return "", fmt.Errorf("request bridge command: %w", err)
 	}
 	for attempts := 0; attempts < 4; attempts++ {
 		response, readErr := readRCONPacket(console)
 		if readErr != nil {
-			return "", fmt.Errorf("read player snapshot: %w", readErr)
+			return "", fmt.Errorf("read bridge response: %w", readErr)
 		}
 		if response.id == requestID && response.packetType == rconResponsePacket {
 			return response.payload, nil
 		}
 	}
-	return "", errors.New("Factorio RCON did not return the requested player snapshot")
+	return "", errors.New("Factorio RCON did not return the requested bridge response")
 }
+
+func requestPlayerSnapshot() (string, error) { return requestBridgeCommand("/fsm-players") }
 
 func parsePlayerSnapshot(response string) (PlayerIntelligenceSnapshot, error) {
 	var snapshot PlayerIntelligenceSnapshot

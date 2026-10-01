@@ -13,6 +13,8 @@ export default {
         const response = await client.delete(`/api/saves/rm/${encodeURIComponent(save.name)}`, confirmed('RemoveSave'));
         return response.data;
     },
+    bulkBackup: async names => (await client.post('/api/saves/bulk/backup', {names})).data,
+    bulkDelete: async names => (await client.post('/api/saves/bulk/delete', {names}, confirmed('BulkRemoveSaves'))).data,
     rename: async (save, name) => (await client.post(`/api/saves/${encodeURIComponent(save.name)}/rename`, {name})).data,
     backups: {
         list: async () => (await client.get('/api/saves/backups')).data,
@@ -20,6 +22,8 @@ export default {
         restore: async backup => (await client.post(`/api/saves/backups/${encodeURIComponent(backup.name)}/restore`, undefined, confirmed('RestoreSaveBackup'))).data,
         delete: async backup => (await client.delete(`/api/saves/backups/${encodeURIComponent(backup.name)}`, confirmed('RemoveSaveBackup'))).data,
         download: backup => `/api/saves/backups/${encodeURIComponent(backup.name)}/download`,
+        bulkRestore: async names => (await client.post('/api/saves/backups/bulk/restore', {names}, confirmed('BulkRestoreSaveBackups'))).data,
+        bulkDelete: async names => (await client.post('/api/saves/backups/bulk/delete', {names}, confirmed('BulkRemoveSaveBackups'))).data,
     },
     create: async (name) => {
         const response = await client.post(`/api/saves/create/${encodeURIComponent(name)}`);

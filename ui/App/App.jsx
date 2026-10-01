@@ -20,6 +20,7 @@ import Players from "./views/Players";
 import Monitoring from "./views/Monitoring";
 import Audit from "./views/Audit";
 import FactorioClient from "./views/FactorioClient";
+import GameEvents from "./views/GameEvents";
 
 const ProtectedRoute = ({identity}) => identity
     ? <Outlet/>
@@ -157,6 +158,7 @@ const App = () => {
                         <Route path="game-settings" element={<GameSettings serverStatus={serverStatus}/>}/>
                         <Route path="console" element={<Console canManage={identity?.can_manage} serverStatus={serverStatus}/>}/>
                         <Route path="monitoring" element={<Monitoring/>}/>
+                        <Route path="events" element={<GameEvents/>}/>
                         <Route path="logs" element={<Logs serverStatus={serverStatus}/>}/>
                         <Route path="audit" element={<Audit/>}/>
                     </Route>

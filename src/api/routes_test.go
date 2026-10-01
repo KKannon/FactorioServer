@@ -137,7 +137,7 @@ func TestDownloadPlayerBridgeReturnsInstallableArchive(t *testing.T) {
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("download status = %d", recorder.Code)
 	}
-	if disposition := recorder.Header().Get("Content-Disposition"); disposition != `attachment; filename="factorio-server-manager-bridge_1.0.1.zip"` {
+	if disposition := recorder.Header().Get("Content-Disposition"); disposition != `attachment; filename="factorio-server-manager-bridge_1.1.0.zip"` {
 		t.Fatalf("Content-Disposition = %q", disposition)
 	}
 	reader, err := zip.NewReader(bytes.NewReader(recorder.Body.Bytes()), int64(recorder.Body.Len()))
@@ -146,7 +146,7 @@ func TestDownloadPlayerBridgeReturnsInstallableArchive(t *testing.T) {
 	}
 	foundInfo := false
 	for _, file := range reader.File {
-		if file.Name == "factorio-server-manager-bridge_1.0.1/info.json" {
+		if file.Name == "factorio-server-manager-bridge_1.1.0/info.json" {
 			foundInfo = true
 		}
 	}

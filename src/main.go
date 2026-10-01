@@ -32,6 +32,7 @@ func main() {
 	// Initialize authentication system
 	api.SetupAuth()
 	api.SetupNotifications()
+	api.SetupGameEvents()
 	api.StartMetricsBroadcaster()
 
 	// Initialize HTTP router -- also initializes websocket

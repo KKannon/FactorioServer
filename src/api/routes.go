@@ -139,6 +139,10 @@ func NewRouter() *mux.Router {
 		Methods("GET").
 		Name("Monitoring").
 		Handler(http.StripPrefix("/monitoring", http.FileServer(http.Dir("./app/"))))
+	subRouter.Path("/events").
+		Methods("GET").
+		Name("Events").
+		Handler(http.StripPrefix("/events", http.FileServer(http.Dir("./app/"))))
 	subRouter.Path("/logs").
 		Methods("GET").
 		Name("Logs").
@@ -222,6 +226,7 @@ var managementRoutes = map[string]bool{
 	"LogTail": true, "LoadConfig": true, "FactorioVersion": true, "GetServerSettings": true,
 	"UploadSave": true, "RemoveSave": true, "CreateSave": true, "LoadModsFromSave": true,
 	"CreateSaveBackup": true, "RestoreSaveBackup": true, "RemoveSaveBackup": true, "RenameSave": true,
+	"BulkCreateSaveBackups": true, "BulkRemoveSaves": true, "BulkRestoreSaveBackups": true, "BulkRemoveSaveBackups": true,
 	"CreateWorld": true, "GenerateMapPreview": true, "SaveMapPreset": true, "RemoveMapPreset": true,
 	"StartServer": true, "StopServer": true, "KillServer": true, "UpdateServerSettings": true,
 	"RestartServer":          true,
@@ -231,6 +236,7 @@ var managementRoutes = map[string]bool{
 	"InstallPlayerBridge":     true,
 	"GetFactorioClientConfig": true, "UpdateFactorioClientConfig": true,
 	"GetAuditEvents": true, "GetSecurityOverview": true,
+	"GetGameEventCatalog": true, "ListGameEventRules": true, "CreateGameEventRule": true, "UpdateGameEventRule": true, "DeleteGameEventRule": true, "ListGameEventHistory": true,
 	"ModPortalListAllMods": true, "ModPortalGetModInfo": true, "ModPortalLoginStatus": true,
 	"ModPortalInstallMod": true, "ModPortalLogin": true, "ModPortalLogout": true, "ModPortalInstallMultiple": true,
 	"ListInstalledMods": true, "ToggleMod": true, "DeleteMod": true, "DeleteAllMods": true, "UpdateMod": true, "UploadMod": true, "DownloadMods": true,
@@ -243,15 +249,30 @@ var managementRoutes = map[string]bool{
 
 var destructiveRoutes = map[string]bool{
 	"RemoveSave": true, "RestoreSaveBackup": true, "RemoveSaveBackup": true,
+	"BulkRemoveSaves": true, "BulkRestoreSaveBackups": true, "BulkRemoveSaveBackups": true,
 	"KillServer": true, "InstallFactorioVersion": true, "RemoveMapPreset": true,
 	"DeleteMod": true, "DeleteAllMods": true, "ModPackDelete": true,
 	"LoadModPack": true, "ModPackDeleteMod": true, "ModPackDeleteAllMod": true,
 	"InstallPlayerBridge": true,
+	"DeleteGameEventRule": true,
 }
 
 // Defines all API REST endpoints
 // All routes are prefixed with /api
 var apiRoutes = Routes{
+	{
+		"GetGameEventCatalog", "GET", "/events/catalog", GetGameEventCatalog, false,
+	}, {
+		"ListGameEventRules", "GET", "/events/rules", ListGameEventRules, false,
+	}, {
+		"CreateGameEventRule", "POST", "/events/rules", CreateGameEventRule, false,
+	}, {
+		"UpdateGameEventRule", "PUT", "/events/rules/{id}", UpdateGameEventRule, false,
+	}, {
+		"DeleteGameEventRule", "DELETE", "/events/rules/{id}", DeleteGameEventRule, false,
+	}, {
+		"ListGameEventHistory", "GET", "/events/history", ListGameEventHistory, false,
+	},
 	{
 		"GetFactorioClientConfig",
 		"GET",
@@ -313,6 +334,14 @@ var apiRoutes = Routes{
 		"/saves/mods",
 		LoadModsFromSaveHandler,
 		true,
+	}, {
+		"BulkCreateSaveBackups", "POST", "/saves/bulk/backup", BulkCreateSaveBackups, true,
+	}, {
+		"BulkRemoveSaves", "POST", "/saves/bulk/delete", BulkRemoveSaves, true,
+	}, {
+		"BulkRestoreSaveBackups", "POST", "/saves/backups/bulk/restore", BulkRestoreSaveBackups, true,
+	}, {
+		"BulkRemoveSaveBackups", "POST", "/saves/backups/bulk/delete", BulkRemoveSaveBackups, false,
 	}, {
 		"ListSaveBackups",
 		"GET",

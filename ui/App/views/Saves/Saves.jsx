@@ -16,11 +16,15 @@ const Saves = ({serverStatus, canManage}) => {
     const [saves, setSaves] = useState([]);
     const [backups, setBackups] = useState([]);
     const [working, setWorking] = useState('');
+    const [selectedSaves, setSelectedSaves] = useState([]);
+    const [selectedBackups, setSelectedBackups] = useState([]);
 
     const updateList = () => {
         return Promise.all([savesResource.list(), savesResource.backups.list()]).then(([saveList, backupList]) => {
             setSaves(saveList || []);
             setBackups(backupList || []);
+            setSelectedSaves(current => current.filter(name => (saveList || []).some(save => save.name === name)));
+            setSelectedBackups(current => current.filter(name => (backupList || []).some(backup => backup.name === name)));
         });
     }
 
@@ -89,6 +93,25 @@ const Saves = ({serverStatus, canManage}) => {
         finally { setWorking(''); }
     };
 
+    const bulkResult = results => {
+        const failures = (results || []).filter(item => !item.ok);
+        return failures.length ? `${results.length - failures.length}/${results.length} · ${failures.map(item => `${item.name}: ${item.error}`).join('; ')}` : t('saves.bulkComplete', {count: results.length});
+    };
+
+    const runBulk = async (kind, names, operation, destructive = false) => {
+        if (!names.length) return;
+        if (destructive) {
+            const answer = await Swal.fire({icon:'warning', title:t(`saves.${kind}Title`), text:t('saves.bulkSelected', {count:names.length}), showCancelButton:true, confirmButtonText:t('saves.bulkConfirm'), cancelButtonText:t('controls.cancel'), confirmButtonColor:'#dc2626'});
+            if (!answer.isConfirmed) return;
+        }
+        setWorking(`bulk:${kind}`);
+        try {
+            const results = await operation(names);
+            await Swal.fire({icon: results.some(item => !item.ok) ? 'warning' : 'success', text: bulkResult(results)});
+            setSelectedSaves([]); setSelectedBackups([]); await updateList();
+        } finally { setWorking(''); }
+    };
+
     return (
         <>
             {canManage && <div className="lg:flex mb-6">
@@ -115,9 +138,15 @@ const Saves = ({serverStatus, canManage}) => {
                 title={t('saves.list')}
                 content={
                     <div className="overflow-x-auto w-full">
+                        {canManage && <div className="flex gap-2 flex-wrap mb-3">
+                            <Button size="sm" isDisabled={!selectedSaves.length || serverStatus.running} isLoading={working === 'bulk:bulkBackup'} onClick={() => runBulk('bulkBackup', selectedSaves, savesResource.bulkBackup)}>{t('saves.bulkBackup')}</Button>
+                            <Button size="sm" type="danger" isDisabled={!selectedSaves.length || serverStatus.running} isLoading={working === 'bulkDeleteWorlds'} onClick={() => runBulk('bulkDeleteWorlds', selectedSaves, savesResource.bulkDelete, true)}>{t('saves.bulkDelete')}</Button>
+                            <span className="self-center opacity-70">{t('saves.selectedCount', {count:selectedSaves.length})}</span>
+                        </div>}
                         <table className="w-full">
                             <thead>
                             <tr className="text-left py-1">
+                                {canManage && <th><input aria-label={t('saves.selectAll')} type="checkbox" checked={saves.length > 0 && selectedSaves.length === saves.length} onChange={event => setSelectedSaves(event.target.checked ? saves.map(save => save.name) : [])}/></th>}
                                 <th>{t('saves.name')}</th>
                                 <th>{t('saves.modified')}</th>
                                 <th>{t('saves.size')}</th>
@@ -127,6 +156,7 @@ const Saves = ({serverStatus, canManage}) => {
                             <tbody>
                             {saves.map(save =>
                                 <tr className="py-2 md:py-1" key={save.name}>
+                                    {canManage && <td><input type="checkbox" checked={selectedSaves.includes(save.name)} onChange={event => setSelectedSaves(current => event.target.checked ? [...current, save.name] : current.filter(name => name !== save.name))}/></td>}
                                     <td className="pr-4">{save.name} {save.active && <span className="bg-green text-black rounded px-2 py-1 text-xs">{t('saves.active')}</span>}</td>
                                     <td className="pr-4">{formatDateTime(save.last_mod)}</td>
                                     <td className="pr-4">{parseFloat(save.size / 1024 / 1024).toFixed(3)} MB</td>
@@ -154,13 +184,19 @@ const Saves = ({serverStatus, canManage}) => {
                 title={t('saves.backups')}
                 content={<div className="overflow-x-auto w-full">
                     {serverStatus.running && <p className="text-orange mb-4">{t('saves.backupStopped')}</p>}
+                    {canManage && <div className="flex gap-2 flex-wrap mb-3">
+                        <Button size="sm" isDisabled={!selectedBackups.length || serverStatus.running} isLoading={working === 'bulk:bulkRestore'} onClick={() => runBulk('bulkRestore', selectedBackups, savesResource.backups.bulkRestore, true)}>{t('saves.bulkRestore')}</Button>
+                        <Button size="sm" type="danger" isDisabled={!selectedBackups.length} isLoading={working === 'bulk:bulkDeleteBackups'} onClick={() => runBulk('bulkDeleteBackups', selectedBackups, savesResource.backups.bulkDelete, true)}>{t('saves.bulkDelete')}</Button>
+                        <span className="self-center opacity-70">{t('saves.selectedCount', {count:selectedBackups.length})}</span>
+                    </div>}
                     <table className="w-full">
                         <thead><tr className="text-left py-1">
-                            <th>{t('saves.world')}</th><th>{t('saves.created')}</th><th>{t('saves.size')}</th><th>{t('saves.actions')}</th>
+                            {canManage && <th><input aria-label={t('saves.selectAll')} type="checkbox" checked={backups.length > 0 && selectedBackups.length === backups.length} onChange={event => setSelectedBackups(event.target.checked ? backups.map(backup => backup.name) : [])}/></th>}<th>{t('saves.world')}</th><th>{t('saves.created')}</th><th>{t('saves.size')}</th><th>{t('saves.actions')}</th>
                         </tr></thead>
                         <tbody>
                         {backups.length === 0 && <tr><td colSpan="4" className="py-4 opacity-70">{t('saves.emptyBackups')}</td></tr>}
                         {backups.map(backup => <tr className="py-2 md:py-1" key={backup.name}>
+                            {canManage && <td><input type="checkbox" checked={selectedBackups.includes(backup.name)} onChange={event => setSelectedBackups(current => event.target.checked ? [...current, backup.name] : current.filter(name => name !== backup.name))}/></td>}
                             <td className="pr-4">{backup.save_name}</td>
                             <td className="pr-4">{formatDateTime(backup.created_at)}</td>
                             <td className="pr-4">{parseFloat(backup.size / 1024 / 1024).toFixed(3)} MB</td>

@@ -13,7 +13,7 @@ func TestBuildPlayerBridgeArchiveContainsFactorioMod(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if filename != "factorio-server-manager-bridge_1.0.1.zip" {
+	if filename != "factorio-server-manager-bridge_1.1.0.zip" {
 		t.Fatalf("unexpected bridge filename %q", filename)
 	}
 	reader, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
